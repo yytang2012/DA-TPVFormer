@@ -36,16 +36,24 @@ class DETR3DHead(DETRHead):
 
     def __init__(
             self,
-            *args,
+            num_query=900,
+            num_classes=10,
+            embed_dims=256,
+            sync_cls_avg_factor=True,
             with_box_refine=False,
             as_two_stage=False,
             transformer=None,
             bbox_coder=None,
-            num_cls_fcs=2,
+            num_reg_fcs=2,
+            loss_cls=None,
+            loss_bbox=None,
+            loss_iou=None,
+            train_cfg=None,
             code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2],
             code_size=10,
             **kwargs):
         self.with_box_refine = with_box_refine
+        self.num_query = num_query
         self.as_two_stage = as_two_stage
         if self.as_two_stage:
             transformer['as_two_stage'] = self.as_two_stage
@@ -54,9 +62,20 @@ class DETR3DHead(DETRHead):
 
         self.bbox_coder = TASK_UTILS.build(bbox_coder)
         self.pc_range = self.bbox_coder.pc_range
-        self.num_cls_fcs = num_cls_fcs - 1
+        self.num_reg_fcs = num_reg_fcs - 1
+        # super(DETR3DHead, self).__init__(
+        #     *args, transformer=transformer, **kwargs)
         super(DETR3DHead, self).__init__(
-            *args, transformer=transformer, **kwargs)
+            num_classes=num_classes,
+            embed_dims=embed_dims,
+            sync_cls_avg_factor=sync_cls_avg_factor,
+            num_reg_fcs=num_reg_fcs,
+            loss_cls=loss_cls,
+            loss_bbox=loss_bbox,
+            loss_iou=loss_iou,
+            train_cfg=train_cfg,
+        )
+        self.transformer = MODELS.build(transformer)
         # DETR sampling=False, so use PseudoSampler, format the result
         sampler_cfg = dict(type='PseudoSampler')
         self.sampler = TASK_UTILS.build(sampler_cfg)
@@ -88,8 +107,9 @@ class DETR3DHead(DETRHead):
 
         # last reg_branch is used to generate proposal from
         # encode feature map when as_two_stage is True.
-        num_pred = (self.transformer.decoder.num_layers + 1) if \
-            self.as_two_stage else self.transformer.decoder.num_layers
+        # num_pred = (self.transformer.decoder.num_layers + 1) if \
+        #     self.as_two_stage else self.transformer.decoder.num_layers
+        num_pred = 6
 
         if self.with_box_refine:
             self.cls_branches = _get_clones(fc_cls, num_pred)
