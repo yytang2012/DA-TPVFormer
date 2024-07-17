@@ -59,10 +59,13 @@ class TPVFormer(Base3DSegmentor):
         """Forward predict function."""
         img_feats = self.extract_feat(batch_inputs['imgs'])
         tpv_queries = self.encoder(img_feats, batch_data_samples)
-        seg_logits = self.decode_head.predict(tpv_queries, batch_data_samples)
-        seg_preds = [seg_logit.argmax(dim=1) for seg_logit in seg_logits]
+        seg_logits_list = self.decode_head.predict(tpv_queries, batch_data_samples)
+        # seg_preds = [seg_logit.argmax(dim=1) for seg_logit in seg_logits]
 
-        return self.postprocess_result(seg_preds, batch_data_samples)
+        for i in range(len(seg_logits_list)):
+            seg_logits_list[i] = seg_logits_list[i].transpose(0, 1)
+
+        return self.postprocess_result(seg_logits_list, batch_data_samples)
 
     def aug_test(self, batch_inputs, batch_data_samples):
         pass
