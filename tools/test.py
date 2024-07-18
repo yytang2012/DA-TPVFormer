@@ -82,9 +82,9 @@ def trigger_visualization_hook(cfg, args):
             'mono_det', 'multi-view_det', 'lidar_det', 'lidar_seg',
             'multi-modality_det'
         ]
-        assert args.task in all_task_choices, 'You must set '\
-            f"'--task' in {all_task_choices} in the command " \
-            'if you want to use visualization hook'
+        assert args.task in all_task_choices, 'You must set ' \
+                                              f"'--task' in {all_task_choices} in the command " \
+                                              'if you want to use visualization hook'
         visualization_hook['vis_task'] = args.task
         visualization_hook['score_thr'] = args.score_thr
     else:
@@ -96,7 +96,17 @@ def trigger_visualization_hook(cfg, args):
     return cfg
 
 
+def set_env_if_not_exists(key, value):
+    if key not in os.environ:
+        os.environ[key] = value
+
+
 def main():
+    set_env_if_not_exists('RANK', '0')
+    set_env_if_not_exists('WORLD_SIZE', '1')
+    set_env_if_not_exists('MASTER_ADDR', '127.0.0.1')
+    set_env_if_not_exists('MASTER_PORT', '20506')
+
     args = parse_args()
 
     # load config

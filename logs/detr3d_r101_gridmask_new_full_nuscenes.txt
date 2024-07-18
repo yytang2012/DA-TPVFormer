@@ -1,0 +1,998 @@
+/home/yytang/miniconda3/envs/mmdetection3d/bin/python /home/yytang/PycharmProjects/mmdetection3d/tools/test.py projects/DETR3D/configs/detr3d_r101_gridmask_new.py ./checkpoints/detr3d_r101_gridmask.pth --launcher pytorch
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/mmengine/optim/optimizer/zero_optimizer.py:11: DeprecationWarning: `TorchScript` support for functional optimizers is deprecated and will be removed in a future PyTorch release. Consider using the `torch.compile` optimizer instead.
+  from torch.distributed.optim import \
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/mmengine/utils/dl_utils/setup_env.py:46: UserWarning: Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed.
+  warnings.warn(
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/mmengine/utils/dl_utils/setup_env.py:56: UserWarning: Setting MKL_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed.
+  warnings.warn(
+07/18 10:17:12 - mmengine - INFO -
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.8.19 (default, Mar 20 2024, 19:58:24) [GCC 11.2.0]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 1884067588
+    GPU 0: NVIDIA GeForce RTX 4090
+    CUDA_HOME: /usr/local/cuda
+    NVCC: Cuda compilation tools, release 12.4, V12.4.99
+    GCC: gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+    PyTorch: 2.5.0.dev20240708
+    PyTorch compiling details: PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2023.1-Product Build 20230303 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v3.4.2 (Git Hash 1137e04ec0b5251ca2b4400a4fd3c667ce843d67)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 12.4
+  - NVCC architecture flags: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_90,code=sm_90
+  - CuDNN 90.1
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=12.4, CUDNN_VERSION=9.1.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -D_GLIBCXX_USE_CXX11_ABI=0 -fabi-version=11 -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOROCTRACER -DUSE_FBGEMM -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wsuggest-override -Wno-psabi -Wno-error=pedantic -Wno-error=old-style-cast -Wno-missing-braces -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=2.5.0, USE_CUDA=ON, USE_CUDNN=ON, USE_CUSPARSELT=1, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF,
+
+    TorchVision: 0.20.0.dev20240708
+    OpenCV: 4.10.0
+    MMEngine: 0.10.4
+
+Runtime environment:
+    cudnn_benchmark: False
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: 1884067588
+    Distributed launcher: pytorch
+    Distributed training: True
+    GPU number: 1
+------------------------------------------------------------
+
+07/18 10:17:12 - mmengine - INFO - Config:
+backend_args = None
+class_names = [
+    'car',
+    'truck',
+    'construction_vehicle',
+    'bus',
+    'trailer',
+    'barrier',
+    'motorcycle',
+    'bicycle',
+    'pedestrian',
+    'traffic_cone',
+]
+custom_imports = dict(imports=[
+    'projects.DETR3D.detr3d',
+])
+data_prefix = dict(
+    CAM_BACK='samples/CAM_BACK',
+    CAM_BACK_LEFT='samples/CAM_BACK_LEFT',
+    CAM_BACK_RIGHT='samples/CAM_BACK_RIGHT',
+    CAM_FRONT='samples/CAM_FRONT',
+    CAM_FRONT_LEFT='samples/CAM_FRONT_LEFT',
+    CAM_FRONT_RIGHT='samples/CAM_FRONT_RIGHT',
+    pts='')
+data_root = 'data/nuscenes/'
+dataset_type = 'NuScenesDataset'
+dataset_version = 'v1.0-test'
+default_hooks = dict(
+    checkpoint=dict(
+        interval=1, max_keep_ckpts=1, save_last=True, type='CheckpointHook'),
+    logger=dict(interval=50, type='LoggerHook'),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    timer=dict(type='IterTimerHook'),
+    visualization=dict(type='Det3DVisualizationHook'))
+default_scope = 'mmdet3d'
+env_cfg = dict(
+    cudnn_benchmark=False,
+    dist_cfg=dict(backend='nccl'),
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
+eval_version = 'v1.0-trainval'
+img_norm_cfg = dict(
+    bgr_to_rgb=False, mean=[
+        103.53,
+        116.28,
+        123.675,
+    ], std=[
+        1.0,
+        1.0,
+        1.0,
+    ])
+input_modality = dict(
+    use_camera=True,
+    use_external=False,
+    use_lidar=False,
+    use_map=False,
+    use_radar=False)
+launcher = 'pytorch'
+load_from = './checkpoints/detr3d_r101_gridmask.pth'
+log_level = 'INFO'
+log_processor = dict(by_epoch=True, type='LogProcessor', window_size=50)
+metainfo = dict(
+    classes=[
+        'car',
+        'truck',
+        'construction_vehicle',
+        'bus',
+        'trailer',
+        'barrier',
+        'motorcycle',
+        'bicycle',
+        'pedestrian',
+        'traffic_cone',
+    ],
+    version='v1.0-trainval')
+model = dict(
+    data_preprocessor=dict(
+        bgr_to_rgb=False,
+        mean=[
+            103.53,
+            116.28,
+            123.675,
+        ],
+        pad_size_divisor=32,
+        std=[
+            1.0,
+            1.0,
+            1.0,
+        ],
+        type='Det3DDataPreprocessor'),
+    img_backbone=dict(
+        dcn=dict(deform_groups=1, fallback_on_stride=False, type='DCNv2'),
+        depth=101,
+        frozen_stages=1,
+        norm_cfg=dict(requires_grad=False, type='BN2d'),
+        norm_eval=True,
+        num_stages=4,
+        out_indices=(
+            0,
+            1,
+            2,
+            3,
+        ),
+        stage_with_dcn=(
+            False,
+            False,
+            True,
+            True,
+        ),
+        style='caffe',
+        type='mmdet.ResNet'),
+    img_neck=dict(
+        add_extra_convs='on_output',
+        in_channels=[
+            256,
+            512,
+            1024,
+            2048,
+        ],
+        num_outs=4,
+        out_channels=256,
+        relu_before_extra_convs=True,
+        start_level=1,
+        type='mmdet.FPN'),
+    pts_bbox_head=dict(
+        as_two_stage=False,
+        bbox_coder=dict(
+            max_num=300,
+            num_classes=10,
+            pc_range=[
+                -51.2,
+                -51.2,
+                -5.0,
+                51.2,
+                51.2,
+                3.0,
+            ],
+            post_center_range=[
+                -61.2,
+                -61.2,
+                -10.0,
+                61.2,
+                61.2,
+                10.0,
+            ],
+            type='NMSFreeCoder',
+            voxel_size=[
+                0.2,
+                0.2,
+                8,
+            ]),
+        embed_dims=256,
+        loss_bbox=dict(loss_weight=0.25, type='mmdet.L1Loss'),
+        loss_cls=dict(
+            alpha=0.25,
+            gamma=2.0,
+            loss_weight=2.0,
+            type='mmdet.FocalLoss',
+            use_sigmoid=True),
+        loss_iou=dict(loss_weight=0.0, type='mmdet.GIoULoss'),
+        num_classes=10,
+        num_query=900,
+        positional_encoding=dict(
+            normalize=True,
+            num_feats=128,
+            offset=-0.5,
+            type='mmdet.SinePositionalEncoding'),
+        sync_cls_avg_factor=True,
+        transformer=dict(
+            decoder=dict(
+                num_layers=6,
+                return_intermediate=True,
+                transformerlayers=dict(
+                    attn_cfgs=[
+                        dict(
+                            dropout=0.1,
+                            embed_dims=256,
+                            num_heads=8,
+                            type='MultiheadAttention'),
+                        dict(
+                            embed_dims=256,
+                            num_points=1,
+                            pc_range=[
+                                -51.2,
+                                -51.2,
+                                -5.0,
+                                51.2,
+                                51.2,
+                                3.0,
+                            ],
+                            type='Detr3DCrossAtten'),
+                    ],
+                    feedforward_channels=512,
+                    ffn_dropout=0.1,
+                    operation_order=(
+                        'self_attn',
+                        'norm',
+                        'cross_attn',
+                        'norm',
+                        'ffn',
+                        'norm',
+                    ),
+                    type='DetrTransformerDecoderLayer'),
+                type='Detr3DTransformerDecoder'),
+            type='Detr3DTransformer'),
+        type='DETR3DHead',
+        with_box_refine=True),
+    train_cfg=dict(
+        pts=dict(
+            assigner=dict(
+                cls_cost=dict(type='mmdet.FocalLossCost', weight=2.0),
+                iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
+                pc_range=[
+                    -51.2,
+                    -51.2,
+                    -5.0,
+                    51.2,
+                    51.2,
+                    3.0,
+                ],
+                reg_cost=dict(type='BBox3DL1Cost', weight=0.25),
+                type='HungarianAssigner3D'),
+            grid_size=[
+                512,
+                512,
+                1,
+            ],
+            out_size_factor=4,
+            point_cloud_range=[
+                -51.2,
+                -51.2,
+                -5.0,
+                51.2,
+                51.2,
+                3.0,
+            ],
+            voxel_size=[
+                0.2,
+                0.2,
+                8,
+            ])),
+    type='DETR3D',
+    use_grid_mask=True)
+optim_wrapper = dict(
+    clip_grad=dict(max_norm=35, norm_type=2),
+    optimizer=dict(lr=0.0002, type='AdamW', weight_decay=0.01),
+    paramwise_cfg=dict(custom_keys=dict(img_backbone=dict(lr_mult=0.1))),
+    type='OptimWrapper')
+param_scheduler = [
+    dict(
+        begin=0,
+        by_epoch=False,
+        end=500,
+        start_factor=0.3333333333333333,
+        type='LinearLR'),
+    dict(
+        T_max=24,
+        begin=0,
+        by_epoch=True,
+        end=24,
+        eta_min_ratio=0.001,
+        type='CosineAnnealingLR'),
+]
+point_cloud_range = [
+    -51.2,
+    -51.2,
+    -5.0,
+    51.2,
+    51.2,
+    3.0,
+]
+resume = False
+test_cfg = dict(type='TestLoop')
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        ann_file='nuscenes_infos_val.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(
+            CAM_BACK='samples/CAM_BACK',
+            CAM_BACK_LEFT='samples/CAM_BACK_LEFT',
+            CAM_BACK_RIGHT='samples/CAM_BACK_RIGHT',
+            CAM_FRONT='samples/CAM_FRONT',
+            CAM_FRONT_LEFT='samples/CAM_FRONT_LEFT',
+            CAM_FRONT_RIGHT='samples/CAM_FRONT_RIGHT',
+            pts=''),
+        data_root='data/nuscenes/',
+        load_type='frame_based',
+        metainfo=dict(
+            classes=[
+                'car',
+                'truck',
+                'construction_vehicle',
+                'bus',
+                'trailer',
+                'barrier',
+                'motorcycle',
+                'bicycle',
+                'pedestrian',
+                'traffic_cone',
+            ],
+            version='v1.0-trainval'),
+        modality=dict(
+            use_camera=True,
+            use_external=False,
+            use_lidar=False,
+            use_map=False,
+            use_radar=False),
+        pipeline=[
+            dict(
+                backend_args=None,
+                num_views=6,
+                to_float32=True,
+                type='LoadMultiViewImageFromFiles'),
+            dict(
+                transforms=[
+                    dict(
+                        keep_ratio=True,
+                        ratio_range=(
+                            1.0,
+                            1.0,
+                        ),
+                        scale=(
+                            1600,
+                            900,
+                        ),
+                        type='RandomResize3D'),
+                ],
+                type='MultiViewWrapper'),
+            dict(keys=[
+                'img',
+            ], type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='NuScenesDataset'),
+    drop_last=False,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    ann_file='data/nuscenes/nuscenes_infos_val.pkl',
+    backend_args=None,
+    data_root='data/nuscenes/',
+    metric='bbox',
+    type='NuScenesMetric')
+test_pipeline = [
+    dict(
+        backend_args=None,
+        num_views=6,
+        to_float32=True,
+        type='LoadMultiViewImageFromFiles'),
+    dict(
+        transforms=[
+            dict(
+                keep_ratio=True,
+                ratio_range=(
+                    1.0,
+                    1.0,
+                ),
+                scale=(
+                    1600,
+                    900,
+                ),
+                type='RandomResize3D'),
+        ],
+        type='MultiViewWrapper'),
+    dict(keys=[
+        'img',
+    ], type='Pack3DDetInputs'),
+]
+test_transforms = [
+    dict(
+        keep_ratio=True,
+        ratio_range=(
+            1.0,
+            1.0,
+        ),
+        scale=(
+            1600,
+            900,
+        ),
+        type='RandomResize3D'),
+]
+total_epochs = 24
+train_cfg = dict(max_epochs=24, type='EpochBasedTrainLoop', val_interval=2)
+train_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        ann_file='nuscenes_infos_train.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(
+            CAM_BACK='samples/CAM_BACK',
+            CAM_BACK_LEFT='samples/CAM_BACK_LEFT',
+            CAM_BACK_RIGHT='samples/CAM_BACK_RIGHT',
+            CAM_FRONT='samples/CAM_FRONT',
+            CAM_FRONT_LEFT='samples/CAM_FRONT_LEFT',
+            CAM_FRONT_RIGHT='samples/CAM_FRONT_RIGHT',
+            pts=''),
+        data_root='data/nuscenes/',
+        load_type='frame_based',
+        metainfo=dict(
+            classes=[
+                'car',
+                'truck',
+                'construction_vehicle',
+                'bus',
+                'trailer',
+                'barrier',
+                'motorcycle',
+                'bicycle',
+                'pedestrian',
+                'traffic_cone',
+            ],
+            version='v1.0-trainval'),
+        modality=dict(
+            use_camera=True,
+            use_external=False,
+            use_lidar=False,
+            use_map=False,
+            use_radar=False),
+        pipeline=[
+            dict(
+                backend_args=None,
+                num_views=6,
+                to_float32=True,
+                type='LoadMultiViewImageFromFiles'),
+            dict(
+                type='LoadAnnotations3D',
+                with_attr_label=False,
+                with_bbox_3d=True,
+                with_label_3d=True),
+            dict(
+                transforms=[
+                    dict(type='PhotoMetricDistortion3D'),
+                    dict(
+                        keep_ratio=True,
+                        ratio_range=(
+                            1.0,
+                            1.0,
+                        ),
+                        scale=(
+                            1600,
+                            900,
+                        ),
+                        type='RandomResize3D'),
+                ],
+                type='MultiViewWrapper'),
+            dict(
+                point_cloud_range=[
+                    -51.2,
+                    -51.2,
+                    -5.0,
+                    51.2,
+                    51.2,
+                    3.0,
+                ],
+                type='ObjectRangeFilter'),
+            dict(
+                classes=[
+                    'car',
+                    'truck',
+                    'construction_vehicle',
+                    'bus',
+                    'trailer',
+                    'barrier',
+                    'motorcycle',
+                    'bicycle',
+                    'pedestrian',
+                    'traffic_cone',
+                ],
+                type='ObjectNameFilter'),
+            dict(
+                keys=[
+                    'img',
+                    'gt_bboxes_3d',
+                    'gt_labels_3d',
+                ],
+                type='Pack3DDetInputs'),
+        ],
+        test_mode=False,
+        type='NuScenesDataset'),
+    drop_last=False,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=True, type='DefaultSampler'))
+train_pipeline = [
+    dict(
+        backend_args=None,
+        num_views=6,
+        to_float32=True,
+        type='LoadMultiViewImageFromFiles'),
+    dict(
+        type='LoadAnnotations3D',
+        with_attr_label=False,
+        with_bbox_3d=True,
+        with_label_3d=True),
+    dict(
+        transforms=[
+            dict(type='PhotoMetricDistortion3D'),
+            dict(
+                keep_ratio=True,
+                ratio_range=(
+                    1.0,
+                    1.0,
+                ),
+                scale=(
+                    1600,
+                    900,
+                ),
+                type='RandomResize3D'),
+        ],
+        type='MultiViewWrapper'),
+    dict(
+        point_cloud_range=[
+            -51.2,
+            -51.2,
+            -5.0,
+            51.2,
+            51.2,
+            3.0,
+        ],
+        type='ObjectRangeFilter'),
+    dict(
+        classes=[
+            'car',
+            'truck',
+            'construction_vehicle',
+            'bus',
+            'trailer',
+            'barrier',
+            'motorcycle',
+            'bicycle',
+            'pedestrian',
+            'traffic_cone',
+        ],
+        type='ObjectNameFilter'),
+    dict(
+        keys=[
+            'img',
+            'gt_bboxes_3d',
+            'gt_labels_3d',
+        ], type='Pack3DDetInputs'),
+]
+train_transforms = [
+    dict(type='PhotoMetricDistortion3D'),
+    dict(
+        keep_ratio=True,
+        ratio_range=(
+            1.0,
+            1.0,
+        ),
+        scale=(
+            1600,
+            900,
+        ),
+        type='RandomResize3D'),
+]
+val_cfg = dict(type='ValLoop')
+val_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        ann_file='nuscenes_infos_val.pkl',
+        backend_args=None,
+        box_type_3d='LiDAR',
+        data_prefix=dict(
+            CAM_BACK='samples/CAM_BACK',
+            CAM_BACK_LEFT='samples/CAM_BACK_LEFT',
+            CAM_BACK_RIGHT='samples/CAM_BACK_RIGHT',
+            CAM_FRONT='samples/CAM_FRONT',
+            CAM_FRONT_LEFT='samples/CAM_FRONT_LEFT',
+            CAM_FRONT_RIGHT='samples/CAM_FRONT_RIGHT',
+            pts=''),
+        data_root='data/nuscenes/',
+        load_type='frame_based',
+        metainfo=dict(
+            classes=[
+                'car',
+                'truck',
+                'construction_vehicle',
+                'bus',
+                'trailer',
+                'barrier',
+                'motorcycle',
+                'bicycle',
+                'pedestrian',
+                'traffic_cone',
+            ],
+            version='v1.0-trainval'),
+        modality=dict(
+            use_camera=True,
+            use_external=False,
+            use_lidar=False,
+            use_map=False,
+            use_radar=False),
+        pipeline=[
+            dict(
+                backend_args=None,
+                num_views=6,
+                to_float32=True,
+                type='LoadMultiViewImageFromFiles'),
+            dict(
+                transforms=[
+                    dict(
+                        keep_ratio=True,
+                        ratio_range=(
+                            1.0,
+                            1.0,
+                        ),
+                        scale=(
+                            1600,
+                            900,
+                        ),
+                        type='RandomResize3D'),
+                ],
+                type='MultiViewWrapper'),
+            dict(keys=[
+                'img',
+            ], type='Pack3DDetInputs'),
+        ],
+        test_mode=True,
+        type='NuScenesDataset'),
+    drop_last=False,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(
+    ann_file='data/nuscenes/nuscenes_infos_val.pkl',
+    backend_args=None,
+    data_root='data/nuscenes/',
+    metric='bbox',
+    type='NuScenesMetric')
+vis_backends = [
+    dict(type='TensorboardVisBackend'),
+]
+visualizer = dict(
+    name='visualizer',
+    type='Det3DLocalVisualizer',
+    vis_backends=[
+        dict(type='TensorboardVisBackend'),
+    ])
+voxel_size = [
+    0.2,
+    0.2,
+    8,
+]
+work_dir = './work_dirs/detr3d_r101_gridmask_new'
+
+07/18 10:17:13 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook
+(BELOW_NORMAL) LoggerHook
+ --------------------
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+(VERY_LOW    ) CheckpointHook
+ --------------------
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+(NORMAL      ) DistSamplerSeedHook
+ --------------------
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+ --------------------
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+(BELOW_NORMAL) LoggerHook
+(LOW         ) ParamSchedulerHook
+(VERY_LOW    ) CheckpointHook
+ --------------------
+after_train_epoch:
+(NORMAL      ) IterTimerHook
+(LOW         ) ParamSchedulerHook
+(VERY_LOW    ) CheckpointHook
+ --------------------
+before_val:
+(VERY_HIGH   ) RuntimeInfoHook
+ --------------------
+before_val_epoch:
+(NORMAL      ) IterTimerHook
+ --------------------
+before_val_iter:
+(NORMAL      ) IterTimerHook
+ --------------------
+after_val_iter:
+(NORMAL      ) IterTimerHook
+(NORMAL      ) Det3DVisualizationHook
+(BELOW_NORMAL) LoggerHook
+ --------------------
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+(BELOW_NORMAL) LoggerHook
+(LOW         ) ParamSchedulerHook
+(VERY_LOW    ) CheckpointHook
+ --------------------
+after_val:
+(VERY_HIGH   ) RuntimeInfoHook
+ --------------------
+after_train:
+(VERY_HIGH   ) RuntimeInfoHook
+(VERY_LOW    ) CheckpointHook
+ --------------------
+before_test:
+(VERY_HIGH   ) RuntimeInfoHook
+ --------------------
+before_test_epoch:
+(NORMAL      ) IterTimerHook
+ --------------------
+before_test_iter:
+(NORMAL      ) IterTimerHook
+ --------------------
+after_test_iter:
+(NORMAL      ) IterTimerHook
+(NORMAL      ) Det3DVisualizationHook
+(BELOW_NORMAL) LoggerHook
+ --------------------
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook
+(NORMAL      ) IterTimerHook
+(BELOW_NORMAL) LoggerHook
+ --------------------
+after_test:
+(VERY_HIGH   ) RuntimeInfoHook
+ --------------------
+after_run:
+(BELOW_NORMAL) LoggerHook
+ --------------------
+07/18 10:17:14 - mmengine - WARNING - v1.0-trainval is not a meta file, simply parsed as meta information
+07/18 10:17:21 - mmengine - INFO - ------------------------------
+07/18 10:17:21 - mmengine - INFO - The length of test dataset: 6019
+07/18 10:17:21 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 80004  |
+| truck                | 15704  |
+| construction_vehicle | 2678   |
+| bus                  | 3158   |
+| trailer              | 4159   |
+| barrier              | 26992  |
+| motorcycle           | 2508   |
+| bicycle              | 2381   |
+| pedestrian           | 34347  |
+| traffic_cone         | 15597  |
++----------------------+--------+
+/home/yytang/PycharmProjects/mmdetection3d/mmdet3d/evaluation/functional/kitti_utils/eval.py:10: NumbaDeprecationWarning: The 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.
+  def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/mmengine/runner/checkpoint.py:347: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(filename, map_location=map_location)
+Loads checkpoint by local backend from path: ./checkpoints/detr3d_r101_gridmask.pth
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.0.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.1.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.2.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.3.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.4.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.5.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.6.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.7.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.8.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.9.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.10.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.11.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.12.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.13.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.14.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.15.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.16.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.17.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.18.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.19.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.20.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.21.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer3.22.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer4.0.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer4.1.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - ModulatedDeformConvPack img_backbone.layer4.2.conv2 is upgraded to version 2.
+07/18 10:17:21 - mmengine - INFO - Load checkpoint from ./checkpoints/detr3d_r101_gridmask.pth
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/torch/storage.py:505: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(io.BytesIO(b))
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/torch/storage.py:505: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(io.BytesIO(b))
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/torch/storage.py:505: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(io.BytesIO(b))
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/torch/storage.py:505: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(io.BytesIO(b))
+/home/yytang/PycharmProjects/mmdetection3d/projects/DETR3D/detr3d/detr3d.py:197: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1720424488756/work/torch/csrc/utils/tensor_new.cpp:278.)
+  c2i = torch.tensor(meta['cam2img'][i]).double()
+/home/yytang/miniconda3/envs/mmdetection3d/lib/python3.8/site-packages/torch/nn/functional.py:4900: UserWarning: Default grid_sample and affine_grid behavior has changed to align_corners=False since 1.3.0. Please specify align_corners=True if the old behavior is desired. See the documentation of grid_sample for details.
+  warnings.warn(
+/home/yytang/PycharmProjects/mmdetection3d/projects/DETR3D/detr3d/nms_free_coder.py:70: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.post_center_range = torch.tensor(
+07/18 10:17:31 - mmengine - INFO - Epoch(test) [  50/6019]    eta: 0:19:13  time: 0.1932  data_time: 0.0136  memory: 2290
+07/18 10:17:40 - mmengine - INFO - Epoch(test) [ 100/6019]    eta: 0:18:29  time: 0.1816  data_time: 0.0060  memory: 2290
+07/18 10:17:49 - mmengine - INFO - Epoch(test) [ 150/6019]    eta: 0:18:11  time: 0.1832  data_time: 0.0058  memory: 2290
+07/18 10:17:58 - mmengine - INFO - Epoch(test) [ 200/6019]    eta: 0:17:58  time: 0.1834  data_time: 0.0056  memory: 2290
+07/18 10:18:08 - mmengine - INFO - Epoch(test) [ 250/6019]    eta: 0:17:45  time: 0.1816  data_time: 0.0056  memory: 2290
+07/18 10:18:17 - mmengine - INFO - Epoch(test) [ 300/6019]    eta: 0:17:30  time: 0.1790  data_time: 0.0065  memory: 2290
+07/18 10:18:25 - mmengine - INFO - Epoch(test) [ 350/6019]    eta: 0:17:17  time: 0.1785  data_time: 0.0064  memory: 2290
+07/18 10:18:34 - mmengine - INFO - Epoch(test) [ 400/6019]    eta: 0:17:02  time: 0.1752  data_time: 0.0061  memory: 2290
+07/18 10:18:43 - mmengine - INFO - Epoch(test) [ 450/6019]    eta: 0:16:51  time: 0.1793  data_time: 0.0061  memory: 2290
+07/18 10:18:52 - mmengine - INFO - Epoch(test) [ 500/6019]    eta: 0:16:41  time: 0.1796  data_time: 0.0065  memory: 2290
+07/18 10:19:01 - mmengine - INFO - Epoch(test) [ 550/6019]    eta: 0:16:30  time: 0.1781  data_time: 0.0066  memory: 2290
+07/18 10:19:10 - mmengine - INFO - Epoch(test) [ 600/6019]    eta: 0:16:18  time: 0.1750  data_time: 0.0061  memory: 2290
+07/18 10:19:19 - mmengine - INFO - Epoch(test) [ 650/6019]    eta: 0:16:07  time: 0.1756  data_time: 0.0060  memory: 2290
+07/18 10:19:27 - mmengine - INFO - Epoch(test) [ 700/6019]    eta: 0:15:57  time: 0.1777  data_time: 0.0066  memory: 2290
+07/18 10:19:37 - mmengine - INFO - Epoch(test) [ 750/6019]    eta: 0:15:49  time: 0.1820  data_time: 0.0063  memory: 2290
+07/18 10:19:45 - mmengine - INFO - Epoch(test) [ 800/6019]    eta: 0:15:38  time: 0.1754  data_time: 0.0063  memory: 2290
+07/18 10:19:55 - mmengine - INFO - Epoch(test) [ 850/6019]    eta: 0:15:31  time: 0.1839  data_time: 0.0064  memory: 2290
+07/18 10:20:04 - mmengine - INFO - Epoch(test) [ 900/6019]    eta: 0:15:25  time: 0.1917  data_time: 0.0067  memory: 2290
+07/18 10:20:13 - mmengine - INFO - Epoch(test) [ 950/6019]    eta: 0:15:15  time: 0.1786  data_time: 0.0070  memory: 2290
+07/18 10:20:22 - mmengine - INFO - Epoch(test) [1000/6019]    eta: 0:15:05  time: 0.1773  data_time: 0.0069  memory: 2290
+07/18 10:20:31 - mmengine - INFO - Epoch(test) [1050/6019]    eta: 0:14:56  time: 0.1801  data_time: 0.0071  memory: 2290
+07/18 10:20:40 - mmengine - INFO - Epoch(test) [1100/6019]    eta: 0:14:47  time: 0.1807  data_time: 0.0067  memory: 2290
+07/18 10:20:49 - mmengine - INFO - Epoch(test) [1150/6019]    eta: 0:14:39  time: 0.1834  data_time: 0.0070  memory: 2290
+07/18 10:20:58 - mmengine - INFO - Epoch(test) [1200/6019]    eta: 0:14:30  time: 0.1799  data_time: 0.0068  memory: 2290
+07/18 10:21:07 - mmengine - INFO - Epoch(test) [1250/6019]    eta: 0:14:20  time: 0.1774  data_time: 0.0065  memory: 2290
+07/18 10:21:16 - mmengine - INFO - Epoch(test) [1300/6019]    eta: 0:14:11  time: 0.1774  data_time: 0.0065  memory: 2290
+07/18 10:21:25 - mmengine - INFO - Epoch(test) [1350/6019]    eta: 0:14:01  time: 0.1800  data_time: 0.0065  memory: 2290
+07/18 10:21:34 - mmengine - INFO - Epoch(test) [1400/6019]    eta: 0:13:53  time: 0.1819  data_time: 0.0063  memory: 2290
+07/18 10:21:43 - mmengine - INFO - Epoch(test) [1450/6019]    eta: 0:13:44  time: 0.1845  data_time: 0.0064  memory: 2290
+07/18 10:21:52 - mmengine - INFO - Epoch(test) [1500/6019]    eta: 0:13:36  time: 0.1838  data_time: 0.0062  memory: 2290
+07/18 10:22:01 - mmengine - INFO - Epoch(test) [1550/6019]    eta: 0:13:27  time: 0.1813  data_time: 0.0068  memory: 2290
+07/18 10:22:10 - mmengine - INFO - Epoch(test) [1600/6019]    eta: 0:13:18  time: 0.1787  data_time: 0.0070  memory: 2290
+07/18 10:22:19 - mmengine - INFO - Epoch(test) [1650/6019]    eta: 0:13:08  time: 0.1776  data_time: 0.0068  memory: 2290
+07/18 10:22:28 - mmengine - INFO - Epoch(test) [1700/6019]    eta: 0:12:59  time: 0.1768  data_time: 0.0066  memory: 2290
+07/18 10:22:37 - mmengine - INFO - Epoch(test) [1750/6019]    eta: 0:12:49  time: 0.1766  data_time: 0.0067  memory: 2290
+07/18 10:22:46 - mmengine - INFO - Epoch(test) [1800/6019]    eta: 0:12:40  time: 0.1803  data_time: 0.0063  memory: 2290
+07/18 10:22:55 - mmengine - INFO - Epoch(test) [1850/6019]    eta: 0:12:31  time: 0.1776  data_time: 0.0068  memory: 2290
+07/18 10:23:04 - mmengine - INFO - Epoch(test) [1900/6019]    eta: 0:12:22  time: 0.1777  data_time: 0.0070  memory: 2290
+07/18 10:23:13 - mmengine - INFO - Epoch(test) [1950/6019]    eta: 0:12:13  time: 0.1808  data_time: 0.0069  memory: 2290
+07/18 10:23:22 - mmengine - INFO - Epoch(test) [2000/6019]    eta: 0:12:04  time: 0.1817  data_time: 0.0067  memory: 2290
+07/18 10:23:31 - mmengine - INFO - Epoch(test) [2050/6019]    eta: 0:11:55  time: 0.1826  data_time: 0.0067  memory: 2290
+07/18 10:23:40 - mmengine - INFO - Epoch(test) [2100/6019]    eta: 0:11:47  time: 0.1872  data_time: 0.0066  memory: 2290
+07/18 10:23:50 - mmengine - INFO - Epoch(test) [2150/6019]    eta: 0:11:38  time: 0.1891  data_time: 0.0068  memory: 2290
+07/18 10:23:59 - mmengine - INFO - Epoch(test) [2200/6019]    eta: 0:11:30  time: 0.1855  data_time: 0.0073  memory: 2290
+07/18 10:24:08 - mmengine - INFO - Epoch(test) [2250/6019]    eta: 0:11:21  time: 0.1814  data_time: 0.0068  memory: 2290
+07/18 10:24:17 - mmengine - INFO - Epoch(test) [2300/6019]    eta: 0:11:12  time: 0.1852  data_time: 0.0067  memory: 2290
+07/18 10:24:27 - mmengine - INFO - Epoch(test) [2350/6019]    eta: 0:11:04  time: 0.1904  data_time: 0.0070  memory: 2290
+07/18 10:24:36 - mmengine - INFO - Epoch(test) [2400/6019]    eta: 0:10:55  time: 0.1844  data_time: 0.0071  memory: 2290
+07/18 10:24:45 - mmengine - INFO - Epoch(test) [2450/6019]    eta: 0:10:46  time: 0.1789  data_time: 0.0071  memory: 2290
+07/18 10:24:54 - mmengine - INFO - Epoch(test) [2500/6019]    eta: 0:10:37  time: 0.1784  data_time: 0.0068  memory: 2290
+07/18 10:25:03 - mmengine - INFO - Epoch(test) [2550/6019]    eta: 0:10:27  time: 0.1788  data_time: 0.0069  memory: 2290
+07/18 10:25:12 - mmengine - INFO - Epoch(test) [2600/6019]    eta: 0:10:18  time: 0.1790  data_time: 0.0070  memory: 2290
+07/18 10:25:21 - mmengine - INFO - Epoch(test) [2650/6019]    eta: 0:10:09  time: 0.1808  data_time: 0.0072  memory: 2290
+07/18 10:25:30 - mmengine - INFO - Epoch(test) [2700/6019]    eta: 0:10:00  time: 0.1810  data_time: 0.0070  memory: 2290
+07/18 10:25:39 - mmengine - INFO - Epoch(test) [2750/6019]    eta: 0:09:51  time: 0.1769  data_time: 0.0069  memory: 2290
+07/18 10:25:48 - mmengine - INFO - Epoch(test) [2800/6019]    eta: 0:09:41  time: 0.1765  data_time: 0.0070  memory: 2290
+07/18 10:25:57 - mmengine - INFO - Epoch(test) [2850/6019]    eta: 0:09:32  time: 0.1771  data_time: 0.0072  memory: 2290
+07/18 10:26:05 - mmengine - INFO - Epoch(test) [2900/6019]    eta: 0:09:23  time: 0.1771  data_time: 0.0071  memory: 2290
+07/18 10:26:14 - mmengine - INFO - Epoch(test) [2950/6019]    eta: 0:09:14  time: 0.1778  data_time: 0.0071  memory: 2290
+07/18 10:26:23 - mmengine - INFO - Epoch(test) [3000/6019]    eta: 0:09:05  time: 0.1769  data_time: 0.0070  memory: 2290
+07/18 10:26:32 - mmengine - INFO - Epoch(test) [3050/6019]    eta: 0:08:55  time: 0.1773  data_time: 0.0071  memory: 2290
+07/18 10:26:41 - mmengine - INFO - Epoch(test) [3100/6019]    eta: 0:08:46  time: 0.1786  data_time: 0.0074  memory: 2290
+07/18 10:26:50 - mmengine - INFO - Epoch(test) [3150/6019]    eta: 0:08:37  time: 0.1776  data_time: 0.0072  memory: 2290
+07/18 10:26:59 - mmengine - INFO - Epoch(test) [3200/6019]    eta: 0:08:28  time: 0.1775  data_time: 0.0073  memory: 2290
+07/18 10:27:08 - mmengine - INFO - Epoch(test) [3250/6019]    eta: 0:08:19  time: 0.1773  data_time: 0.0073  memory: 2290
+07/18 10:27:16 - mmengine - INFO - Epoch(test) [3300/6019]    eta: 0:08:10  time: 0.1770  data_time: 0.0071  memory: 2290
+07/18 10:27:25 - mmengine - INFO - Epoch(test) [3350/6019]    eta: 0:08:01  time: 0.1771  data_time: 0.0072  memory: 2290
+07/18 10:27:34 - mmengine - INFO - Epoch(test) [3400/6019]    eta: 0:07:51  time: 0.1770  data_time: 0.0072  memory: 2290
+07/18 10:27:43 - mmengine - INFO - Epoch(test) [3450/6019]    eta: 0:07:42  time: 0.1768  data_time: 0.0070  memory: 2290
+07/18 10:27:52 - mmengine - INFO - Epoch(test) [3500/6019]    eta: 0:07:33  time: 0.1763  data_time: 0.0068  memory: 2290
+07/18 10:28:01 - mmengine - INFO - Epoch(test) [3550/6019]    eta: 0:07:24  time: 0.1766  data_time: 0.0069  memory: 2290
+07/18 10:28:09 - mmengine - INFO - Epoch(test) [3600/6019]    eta: 0:07:15  time: 0.1763  data_time: 0.0068  memory: 2290
+07/18 10:28:18 - mmengine - INFO - Epoch(test) [3650/6019]    eta: 0:07:06  time: 0.1766  data_time: 0.0070  memory: 2290
+07/18 10:28:27 - mmengine - INFO - Epoch(test) [3700/6019]    eta: 0:06:57  time: 0.1766  data_time: 0.0071  memory: 2290
+07/18 10:28:36 - mmengine - INFO - Epoch(test) [3750/6019]    eta: 0:06:48  time: 0.1768  data_time: 0.0072  memory: 2290
+07/18 10:28:45 - mmengine - INFO - Epoch(test) [3800/6019]    eta: 0:06:39  time: 0.1770  data_time: 0.0072  memory: 2290
+07/18 10:28:54 - mmengine - INFO - Epoch(test) [3850/6019]    eta: 0:06:29  time: 0.1769  data_time: 0.0072  memory: 2290
+07/18 10:29:03 - mmengine - INFO - Epoch(test) [3900/6019]    eta: 0:06:20  time: 0.1777  data_time: 0.0072  memory: 2290
+07/18 10:29:11 - mmengine - INFO - Epoch(test) [3950/6019]    eta: 0:06:11  time: 0.1768  data_time: 0.0070  memory: 2290
+07/18 10:29:20 - mmengine - INFO - Epoch(test) [4000/6019]    eta: 0:06:02  time: 0.1772  data_time: 0.0074  memory: 2290
+07/18 10:29:29 - mmengine - INFO - Epoch(test) [4050/6019]    eta: 0:05:53  time: 0.1781  data_time: 0.0075  memory: 2290
+07/18 10:29:38 - mmengine - INFO - Epoch(test) [4100/6019]    eta: 0:05:44  time: 0.1775  data_time: 0.0073  memory: 2290
+07/18 10:29:47 - mmengine - INFO - Epoch(test) [4150/6019]    eta: 0:05:35  time: 0.1773  data_time: 0.0072  memory: 2290
+07/18 10:29:56 - mmengine - INFO - Epoch(test) [4200/6019]    eta: 0:05:26  time: 0.1770  data_time: 0.0072  memory: 2290
+07/18 10:30:05 - mmengine - INFO - Epoch(test) [4250/6019]    eta: 0:05:17  time: 0.1773  data_time: 0.0072  memory: 2290
+07/18 10:30:13 - mmengine - INFO - Epoch(test) [4300/6019]    eta: 0:05:08  time: 0.1775  data_time: 0.0073  memory: 2290
+07/18 10:30:22 - mmengine - INFO - Epoch(test) [4350/6019]    eta: 0:04:59  time: 0.1777  data_time: 0.0073  memory: 2290
+07/18 10:30:31 - mmengine - INFO - Epoch(test) [4400/6019]    eta: 0:04:50  time: 0.1786  data_time: 0.0075  memory: 2290
+07/18 10:30:40 - mmengine - INFO - Epoch(test) [4450/6019]    eta: 0:04:41  time: 0.1774  data_time: 0.0072  memory: 2290
+07/18 10:30:49 - mmengine - INFO - Epoch(test) [4500/6019]    eta: 0:04:32  time: 0.1775  data_time: 0.0073  memory: 2290
+07/18 10:30:58 - mmengine - INFO - Epoch(test) [4550/6019]    eta: 0:04:23  time: 0.1778  data_time: 0.0073  memory: 2290
+07/18 10:31:07 - mmengine - INFO - Epoch(test) [4600/6019]    eta: 0:04:14  time: 0.1772  data_time: 0.0071  memory: 2290
+07/18 10:31:16 - mmengine - INFO - Epoch(test) [4650/6019]    eta: 0:04:05  time: 0.1772  data_time: 0.0072  memory: 2290
+07/18 10:31:25 - mmengine - INFO - Epoch(test) [4700/6019]    eta: 0:03:56  time: 0.1770  data_time: 0.0071  memory: 2290
+07/18 10:31:33 - mmengine - INFO - Epoch(test) [4750/6019]    eta: 0:03:47  time: 0.1774  data_time: 0.0072  memory: 2290
+07/18 10:31:42 - mmengine - INFO - Epoch(test) [4800/6019]    eta: 0:03:38  time: 0.1771  data_time: 0.0072  memory: 2290
+07/18 10:31:51 - mmengine - INFO - Epoch(test) [4850/6019]    eta: 0:03:29  time: 0.1770  data_time: 0.0072  memory: 2290
+07/18 10:32:00 - mmengine - INFO - Epoch(test) [4900/6019]    eta: 0:03:20  time: 0.1771  data_time: 0.0071  memory: 2290
+07/18 10:32:09 - mmengine - INFO - Epoch(test) [4950/6019]    eta: 0:03:11  time: 0.1774  data_time: 0.0072  memory: 2290
+07/18 10:32:18 - mmengine - INFO - Epoch(test) [5000/6019]    eta: 0:03:02  time: 0.1771  data_time: 0.0072  memory: 2290
+07/18 10:32:27 - mmengine - INFO - Epoch(test) [5050/6019]    eta: 0:02:53  time: 0.1771  data_time: 0.0071  memory: 2290
+07/18 10:32:35 - mmengine - INFO - Epoch(test) [5100/6019]    eta: 0:02:44  time: 0.1774  data_time: 0.0074  memory: 2290
+07/18 10:32:44 - mmengine - INFO - Epoch(test) [5150/6019]    eta: 0:02:35  time: 0.1772  data_time: 0.0071  memory: 2290
+07/18 10:32:53 - mmengine - INFO - Epoch(test) [5200/6019]    eta: 0:02:26  time: 0.1775  data_time: 0.0072  memory: 2290
+07/18 10:33:02 - mmengine - INFO - Epoch(test) [5250/6019]    eta: 0:02:17  time: 0.1770  data_time: 0.0073  memory: 2290
+07/18 10:33:11 - mmengine - INFO - Epoch(test) [5300/6019]    eta: 0:02:08  time: 0.1772  data_time: 0.0073  memory: 2290
+07/18 10:33:20 - mmengine - INFO - Epoch(test) [5350/6019]    eta: 0:01:59  time: 0.1783  data_time: 0.0075  memory: 2290
+07/18 10:33:29 - mmengine - INFO - Epoch(test) [5400/6019]    eta: 0:01:50  time: 0.1775  data_time: 0.0073  memory: 2290
+07/18 10:33:38 - mmengine - INFO - Epoch(test) [5450/6019]    eta: 0:01:41  time: 0.1771  data_time: 0.0073  memory: 2290
+07/18 10:33:46 - mmengine - INFO - Epoch(test) [5500/6019]    eta: 0:01:32  time: 0.1769  data_time: 0.0071  memory: 2290
+07/18 10:33:55 - mmengine - INFO - Epoch(test) [5550/6019]    eta: 0:01:23  time: 0.1774  data_time: 0.0073  memory: 2290
+07/18 10:34:04 - mmengine - INFO - Epoch(test) [5600/6019]    eta: 0:01:15  time: 0.1772  data_time: 0.0072  memory: 2290
+07/18 10:34:13 - mmengine - INFO - Epoch(test) [5650/6019]    eta: 0:01:06  time: 0.1777  data_time: 0.0076  memory: 2290
+07/18 10:34:22 - mmengine - INFO - Epoch(test) [5700/6019]    eta: 0:00:57  time: 0.1771  data_time: 0.0073  memory: 2290
+07/18 10:34:31 - mmengine - INFO - Epoch(test) [5750/6019]    eta: 0:00:48  time: 0.1773  data_time: 0.0073  memory: 2290
+07/18 10:34:40 - mmengine - INFO - Epoch(test) [5800/6019]    eta: 0:00:39  time: 0.1771  data_time: 0.0072  memory: 2290
+07/18 10:34:48 - mmengine - INFO - Epoch(test) [5850/6019]    eta: 0:00:30  time: 0.1770  data_time: 0.0071  memory: 2290
+07/18 10:34:57 - mmengine - INFO - Epoch(test) [5900/6019]    eta: 0:00:21  time: 0.1771  data_time: 0.0071  memory: 2290
+07/18 10:35:06 - mmengine - INFO - Epoch(test) [5950/6019]    eta: 0:00:12  time: 0.1769  data_time: 0.0071  memory: 2290
+07/18 10:35:15 - mmengine - INFO - Epoch(test) [6000/6019]    eta: 0:00:03  time: 0.1771  data_time: 0.0072  memory: 2290
+
+Formating bboxes of pred_instances_3d
+Start to convert detection format...
+[>>>>>>>>>>>>>>>>>>>>>>>>>>] 6019/6019, 26.6 task/s, elapsed: 226s, ETA:     0s
+Results writes to /tmp/tmp6_lvmyml/results/pred_instances_3d/results_nusc.json
+Evaluating bboxes of pred_instances_3d
+mAP: 0.3552
+mATE: 0.7446
+mASE: 0.2725
+mAOE: 0.3795
+mAVE: 0.8802
+mAAE: 0.2160
+NDS: 0.4283
+Eval time: 58.0s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE
+car                 	0.549 	0.542 	0.151 	0.071 	0.959 	0.218
+truck               	0.289 	0.830 	0.212 	0.109 	0.998 	0.237
+bus                 	0.369 	0.813 	0.202 	0.104 	1.952 	0.367
+trailer             	0.188 	1.060 	0.246 	0.498 	0.893 	0.157
+construction_vehicle	0.081 	1.028 	0.462 	0.955 	0.114 	0.381
+pedestrian          	0.427 	0.693 	0.296 	0.512 	0.463 	0.202
+motorcycle          	0.352 	0.682 	0.263 	0.488 	1.188 	0.154
+bicycle             	0.286 	0.664 	0.277 	0.548 	0.475 	0.012
+traffic_cone        	0.531 	0.525 	0.326 	nan   	nan   	nan
+barrier             	0.480 	0.609 	0.291 	0.131 	nan   	nan
+07/18 10:41:31 - mmengine - INFO - Epoch(test) [6019/6019]    NuScenes metric/pred_instances_3d_NuScenes/car_AP_dist_0.5: 0.1701  NuScenes metric/pred_instances_3d_NuScenes/car_AP_dist_1.0: 0.4655  NuScenes metric/pred_instances_3d_NuScenes/car_AP_dist_2.0: 0.7206  NuScenes metric/pred_instances_3d_NuScenes/car_AP_dist_4.0: 0.8411  NuScenes metric/pred_instances_3d_NuScenes/car_trans_err: 0.5416  NuScenes metric/pred_instances_3d_NuScenes/car_scale_err: 0.1512  NuScenes metric/pred_instances_3d_NuScenes/car_orient_err: 0.0708  NuScenes metric/pred_instances_3d_NuScenes/car_vel_err: 0.9588  NuScenes metric/pred_instances_3d_NuScenes/car_attr_err: 0.2180  NuScenes metric/pred_instances_3d_NuScenes/mATE: 0.7446  NuScenes metric/pred_instances_3d_NuScenes/mASE: 0.2725  NuScenes metric/pred_instances_3d_NuScenes/mAOE: 0.3795  NuScenes metric/pred_instances_3d_NuScenes/mAVE: 0.8802  NuScenes metric/pred_instances_3d_NuScenes/mAAE: 0.2160  NuScenes metric/pred_instances_3d_NuScenes/truck_AP_dist_0.5: 0.0157  NuScenes metric/pred_instances_3d_NuScenes/truck_AP_dist_1.0: 0.1362  NuScenes metric/pred_instances_3d_NuScenes/truck_AP_dist_2.0: 0.3969  NuScenes metric/pred_instances_3d_NuScenes/truck_AP_dist_4.0: 0.6082  NuScenes metric/pred_instances_3d_NuScenes/truck_trans_err: 0.8297  NuScenes metric/pred_instances_3d_NuScenes/truck_scale_err: 0.2122  NuScenes metric/pred_instances_3d_NuScenes/truck_orient_err: 0.1094  NuScenes metric/pred_instances_3d_NuScenes/truck_vel_err: 0.9976  NuScenes metric/pred_instances_3d_NuScenes/truck_attr_err: 0.2374  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_AP_dist_0.5: 0.0000  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_AP_dist_1.0: 0.0063  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_AP_dist_2.0: 0.0922  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_AP_dist_4.0: 0.2244  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_trans_err: 1.0282  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_scale_err: 0.4623  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_orient_err: 0.9552  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_vel_err: 0.1144  NuScenes metric/pred_instances_3d_NuScenes/construction_vehicle_attr_err: 0.3811  NuScenes metric/pred_instances_3d_NuScenes/bus_AP_dist_0.5: 0.0182  NuScenes metric/pred_instances_3d_NuScenes/bus_AP_dist_1.0: 0.1807  NuScenes metric/pred_instances_3d_NuScenes/bus_AP_dist_2.0: 0.5061  NuScenes metric/pred_instances_3d_NuScenes/bus_AP_dist_4.0: 0.7724  NuScenes metric/pred_instances_3d_NuScenes/bus_trans_err: 0.8129  NuScenes metric/pred_instances_3d_NuScenes/bus_scale_err: 0.2015  NuScenes metric/pred_instances_3d_NuScenes/bus_orient_err: 0.1041  NuScenes metric/pred_instances_3d_NuScenes/bus_vel_err: 1.9520  NuScenes metric/pred_instances_3d_NuScenes/bus_attr_err: 0.3668  NuScenes metric/pred_instances_3d_NuScenes/trailer_AP_dist_0.5: 0.0000  NuScenes metric/pred_instances_3d_NuScenes/trailer_AP_dist_1.0: 0.0227  NuScenes metric/pred_instances_3d_NuScenes/trailer_AP_dist_2.0: 0.2431  NuScenes metric/pred_instances_3d_NuScenes/trailer_AP_dist_4.0: 0.4846  NuScenes metric/pred_instances_3d_NuScenes/trailer_trans_err: 1.0599  NuScenes metric/pred_instances_3d_NuScenes/trailer_scale_err: 0.2458  NuScenes metric/pred_instances_3d_NuScenes/trailer_orient_err: 0.4981  NuScenes metric/pred_instances_3d_NuScenes/trailer_vel_err: 0.8927  NuScenes metric/pred_instances_3d_NuScenes/trailer_attr_err: 0.1570  NuScenes metric/pred_instances_3d_NuScenes/barrier_AP_dist_0.5: 0.1363  NuScenes metric/pred_instances_3d_NuScenes/barrier_AP_dist_1.0: 0.4109  NuScenes metric/pred_instances_3d_NuScenes/barrier_AP_dist_2.0: 0.6426  NuScenes metric/pred_instances_3d_NuScenes/barrier_AP_dist_4.0: 0.7303  NuScenes metric/pred_instances_3d_NuScenes/barrier_trans_err: 0.6093  NuScenes metric/pred_instances_3d_NuScenes/barrier_scale_err: 0.2908  NuScenes metric/pred_instances_3d_NuScenes/barrier_orient_err: 0.1309  NuScenes metric/pred_instances_3d_NuScenes/barrier_vel_err: nan  NuScenes metric/pred_instances_3d_NuScenes/barrier_attr_err: nan  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_AP_dist_0.5: 0.0626  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_AP_dist_1.0: 0.2680  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_AP_dist_2.0: 0.4682  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_AP_dist_4.0: 0.6079  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_trans_err: 0.6820  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_scale_err: 0.2632  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_orient_err: 0.4879  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_vel_err: 1.1880  NuScenes metric/pred_instances_3d_NuScenes/motorcycle_attr_err: 0.1537  NuScenes metric/pred_instances_3d_NuScenes/bicycle_AP_dist_0.5: 0.0593  NuScenes metric/pred_instances_3d_NuScenes/bicycle_AP_dist_1.0: 0.2014  NuScenes metric/pred_instances_3d_NuScenes/bicycle_AP_dist_2.0: 0.3859  NuScenes metric/pred_instances_3d_NuScenes/bicycle_AP_dist_4.0: 0.4968  NuScenes metric/pred_instances_3d_NuScenes/bicycle_trans_err: 0.6641  NuScenes metric/pred_instances_3d_NuScenes/bicycle_scale_err: 0.2766  NuScenes metric/pred_instances_3d_NuScenes/bicycle_orient_err: 0.5475  NuScenes metric/pred_instances_3d_NuScenes/bicycle_vel_err: 0.4752  NuScenes metric/pred_instances_3d_NuScenes/bicycle_attr_err: 0.0119  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_AP_dist_0.5: 0.0841  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_AP_dist_1.0: 0.3028  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_AP_dist_2.0: 0.5769  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_AP_dist_4.0: 0.7438  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_trans_err: 0.6929  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_scale_err: 0.2956  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_orient_err: 0.5121  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_vel_err: 0.4629  NuScenes metric/pred_instances_3d_NuScenes/pedestrian_attr_err: 0.2021  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_AP_dist_0.5: 0.2091  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_AP_dist_1.0: 0.4653  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_AP_dist_2.0: 0.6806  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_AP_dist_4.0: 0.7698  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_trans_err: 0.5253  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_scale_err: 0.3259  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_orient_err: nan  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_vel_err: nan  NuScenes metric/pred_instances_3d_NuScenes/traffic_cone_attr_err: nan  NuScenes metric/pred_instances_3d_NuScenes/NDS: 0.4283  NuScenes metric/pred_instances_3d_NuScenes/mAP: 0.3552  data_time: 0.0070  time: 0.1789
+[rank0]:[W718 10:41:37.781971237 ProcessGroupNCCL.cpp:1164] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
+
+Process finished with exit code 0

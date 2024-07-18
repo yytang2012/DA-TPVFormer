@@ -4,6 +4,29 @@ _base_ = [
 ]
 
 custom_imports = dict(imports=['projects.DETR3D.detr3d'])
+
+# Configuration for dataset
+dataset_type = 'NuScenesDataset'
+
+# available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
+dataset_version = "v1.0-test"
+if dataset_version in {"v1.0-trainval", "v1.0-test"}:
+    data_root = 'data/nuscenes/'
+    eval_version = "v1.0-trainval"
+else:
+    data_root = 'data/nuscenes-mini/'
+    eval_version = "v1.0-mini"
+
+# For nuScenes we usually do 10-class detection
+class_names = [
+    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
+    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+]
+
+metainfo = dict(classes=class_names, version=eval_version)
+
+# data_root = 'data/nuscenes/'
+
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
@@ -11,11 +34,6 @@ voxel_size = [0.2, 0.2, 8]
 
 img_norm_cfg = dict(
     mean=[103.530, 116.280, 123.675], std=[1.0, 1.0, 1.0], bgr_to_rgb=False)
-# For nuScenes we usually do 10-class detection
-class_names = [
-    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
-    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-]
 
 input_modality = dict(
     use_lidar=False,
@@ -117,9 +135,7 @@ model = dict(
                 iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
                 pc_range=point_cloud_range))))
 
-dataset_type = 'NuScenesDataset'
-# data_root = 'data/nuscenes/'
-data_root = 'data/nuscenes-mini/'
+
 
 test_transforms = [
     dict(
@@ -158,10 +174,6 @@ test_pipeline = [
     dict(type='Pack3DDetInputs', keys=['img'])
 ]
 
-# For nuscenes-mini
-metainfo = dict(classes=class_names, version='v1.0-mini')
-# For full nuscenes
-# metainfo = dict(classes=class_names)
 
 data_prefix = dict(
     pts='',
