@@ -3,11 +3,22 @@ _base_ = ['../../../configs/_base_/default_runtime.py']
 custom_imports = dict(
     imports=['projects.TPVFormer.tpvformer'], allow_failed_imports=False)
 
+
+# Configuration for dataset
 dataset_type = 'NuScenesSegDataset'
-data_root = 'data/nuscenes/'
+
+# available_vers = ['v1.0-trainval', 'v1.0-mini']
+dataset_version = "v1.0-trainval"
+if dataset_version in {"v1.0-trainval"}:
+    data_root = 'data/nuscenes/'
+    eval_version = "v1.0-trainval"
+else:
+    data_root = 'data/nuscenes-mini/'
+    eval_version = "v1.0-mini"
+
 data_prefix = dict(
     pts='samples/LIDAR_TOP',
-    pts_semantic_mask='lidarseg/v1.0-trainval',
+    pts_semantic_mask=f'lidarseg/{dataset_version}',
     CAM_FRONT='samples/CAM_FRONT',
     CAM_FRONT_LEFT='samples/CAM_FRONT_LEFT',
     CAM_FRONT_RIGHT='samples/CAM_FRONT_RIGHT',
