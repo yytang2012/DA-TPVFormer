@@ -8,7 +8,7 @@ custom_imports = dict(
 dataset_type = 'NuScenesSegDataset'
 
 # available_vers = ['v1.0-trainval', 'v1.0-mini']
-dataset_version = "v1.0-trainval"
+dataset_version = "v1.0-mini"
 if dataset_version in {"v1.0-trainval"}:
     data_root = 'data/nuscenes/'
     eval_version = "v1.0-trainval"
