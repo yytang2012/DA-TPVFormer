@@ -13,8 +13,7 @@ pip install --no-cache-dir -e .
 export RANK=0
 python tools/test.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg.py ./checkpoints/tpvformer_pretrained_fcos3d_r101_dcn.pth --launcher pytorch
 
-
-# 准备数据集
+python tools/train.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg-small-mini-test.py  --launcher pytorch# 准备数据集
 ```shell
 python tools/create_data.py nuscenes --root-path ./data/nuscenes --out-dir ./data/nuscenes --extra-tag nuscenes
 ```

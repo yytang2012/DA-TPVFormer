@@ -3,11 +3,12 @@ _base_ = ['../../../configs/_base_/default_runtime.py']
 custom_imports = dict(
     imports=['projects.TPVFormer.tpvformer'], allow_failed_imports=False)
 
+
 # Configuration for dataset
 dataset_type = 'NuScenesSegDataset'
 
 # available_vers = ['v1.0-trainval', 'v1.0-mini']
-dataset_version = "v1.0-trainval"
+dataset_version = "v1.0-mini"
 if dataset_version in {"v1.0-trainval"}:
     data_root = 'data/nuscenes/'
     eval_version = "v1.0-trainval"
@@ -78,10 +79,6 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
-    dict(  # Filter points not in the range
-        type='PointsBoxFilter',
-        # point_box_type=((0, 25), (-10, 10), (None, None))
-    ),
     dict(
         type='Pack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask'],
@@ -92,7 +89,7 @@ test_pipeline = val_pipeline
 
 train_dataloader = dict(
     batch_size=1,
-    num_workers=4,
+    num_workers=8,
     persistent_workers=True,
     drop_last=True,
     sampler=dict(type='DefaultSampler', shuffle=True),

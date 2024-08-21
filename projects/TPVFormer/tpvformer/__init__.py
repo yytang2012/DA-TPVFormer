@@ -1,7 +1,7 @@
 from .cross_view_hybrid_attention import TPVCrossViewHybridAttention
 from .data_preprocessor import TPVFormerDataPreprocessor
 from .image_cross_attention import TPVImageCrossAttention
-from .loading import BEVLoadMultiViewImageFromFiles, SegLabelMapping
+from .loading import BEVLoadMultiViewImageFromFiles, SegLabelMapping, PointsBoxFilter
 from .nuscenes_dataset import NuScenesSegDataset
 from .positional_encoding import TPVFormerPositionalEncoding
 from .tpvformer import TPVFormer
@@ -13,5 +13,6 @@ __all__ = [
     'TPVCrossViewHybridAttention', 'TPVImageCrossAttention',
     'TPVFormerPositionalEncoding', 'TPVFormer', 'TPVFormerEncoder',
     'TPVFormerLayer', 'NuScenesSegDataset', 'BEVLoadMultiViewImageFromFiles',
-    'SegLabelMapping', 'TPVFormerDecoder', 'TPVFormerDataPreprocessor'
+    'SegLabelMapping', 'PointsBoxFilter', 'TPVFormerDecoder', 'TPVFormerDataPreprocessor',
+
 ]

@@ -3,11 +3,12 @@ _base_ = ['../../../configs/_base_/default_runtime.py']
 custom_imports = dict(
     imports=['projects.TPVFormer.tpvformer'], allow_failed_imports=False)
 
+
 # Configuration for dataset
 dataset_type = 'NuScenesSegDataset'
 
 # available_vers = ['v1.0-trainval', 'v1.0-mini']
-dataset_version = "v1.0-trainval"
+dataset_version = "v1.0-mini"
 if dataset_version in {"v1.0-trainval"}:
     data_root = 'data/nuscenes/'
     eval_version = "v1.0-trainval"
@@ -78,7 +79,7 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
-    dict(  # Filter points not in the range
+    dict(
         type='PointsBoxFilter',
         # point_box_type=((0, 25), (-10, 10), (None, None))
     ),
@@ -259,7 +260,7 @@ model = dict(
         ]),
     backbone=dict(
         type='mmdet.ResNet',
-        depth=50,
+        depth=101,
         num_stages=4,
         out_indices=(1, 2, 3),
         frozen_stages=1,
@@ -272,10 +273,8 @@ model = dict(
         stage_with_dcn=(False, False, True, True),
         init_cfg=dict(
             type='Pretrained',
-            # checkpoint='torchvision://resnet50',
-            checkpoint='checkpoints/fcos_r50_coco_2mmdet.pth',
-        )
-    ),
+            checkpoint='checkpoints/tpvformer_pretrained_fcos3d_r101_dcn.pth',
+            prefix='backbone.')),
     neck=dict(
         type='mmdet.FPN',
         in_channels=[512, 1024, 2048],
@@ -283,8 +282,11 @@ model = dict(
         start_level=0,
         add_extra_convs='on_output',
         num_outs=4,
-        relu_before_extra_convs=True
-    ),
+        relu_before_extra_convs=True,
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='checkpoints/tpvformer_pretrained_fcos3d_r101_dcn.pth',
+            prefix='neck.')),
     encoder=dict(
         type='TPVFormerEncoder',
         tpv_h=tpv_h_,

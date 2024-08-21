@@ -67,6 +67,11 @@ def parse_args():
 
 
 def main():
+    from tools.test import set_env_if_not_exists
+    set_env_if_not_exists('RANK', '0')
+    set_env_if_not_exists('WORLD_SIZE', '1')
+    set_env_if_not_exists('MASTER_ADDR', '127.0.0.1')
+    set_env_if_not_exists('MASTER_PORT', '20506')
     args = parse_args()
 
     # load config

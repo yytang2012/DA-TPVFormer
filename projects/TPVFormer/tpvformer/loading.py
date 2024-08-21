@@ -154,7 +154,7 @@ class SegLabelMapping(BaseTransform):
         label_mapping = results['seg_label_mapping']
         converted_pts_sem_mask = np.vectorize(
             label_mapping.__getitem__, otypes=[np.uint8])(
-                pts_semantic_mask)
+            pts_semantic_mask)
 
         results['pts_semantic_mask'] = converted_pts_sem_mask
 
@@ -169,4 +169,84 @@ class SegLabelMapping(BaseTransform):
     def __repr__(self) -> str:
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
+        return repr_str
+
+
+@TRANSFORMS.register_module()
+class PointsBoxFilter(BaseTransform):
+    """Filter points by a 3D box range.
+
+    Args:
+        point_box_type (tuple): A tuple of three tuples, each containing min and max values
+            for x, y, and z dimensions respectively. Use None for no limit in a dimension.
+            Format: ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+    """
+
+    def __init__(self, point_box_type=((None, None), (None, None), (None, None))):
+        self.point_box_type = point_box_type
+        super().__init__()
+
+    def transform(self, results: dict) -> dict:
+        """Transform function to filter points.
+
+        Args:
+            results (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after filtering, 'points', 'pts_instance_mask'
+            and 'pts_semantic_mask' keys are updated in the result dict.
+        """
+        points = results['points']
+        coords = points.coord.numpy()
+
+        # Initialize mask as all True
+        mask = np.ones(len(coords), dtype=bool)
+
+        # Apply filtering for each dimension
+        for i, (min_val, max_val) in enumerate(self.point_box_type):
+            if min_val is not None:
+                mask &= (coords[:, i] >= min_val)
+            if max_val is not None:
+                mask &= (coords[:, i] < max_val)
+
+        # Filter points
+        results['points'] = points[mask]
+
+        # Filter instance and semantic masks if they exist
+        if 'pts_instance_mask' in results:
+            results['pts_instance_mask'] = results['pts_instance_mask'][mask]
+
+        if 'pts_semantic_mask' in results:
+            results['pts_semantic_mask'] = results['pts_semantic_mask'][mask]
+            results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask'][mask]
+
+        # TODO:
+        # # Filter ground truth bounding boxes if they exist
+        # if 'gt_bboxes_3d' in results:
+        #     gt_bboxes_3d = results['gt_bboxes_3d']
+        #     gt_labels_3d = results['gt_labels_3d']
+        #
+        #     # Get box centers
+        #     centers = gt_bboxes_3d.gravity_center.numpy()
+        #
+        #     # Initialize box mask as all True
+        #     box_mask = np.ones(len(centers), dtype=bool)
+        #
+        #     # Apply filtering for each dimension
+        #     for i, (min_val, max_val) in enumerate(self.point_box_type):
+        #         if min_val is not None:
+        #             box_mask &= (centers[:, i] >= min_val)
+        #         if max_val is not None:
+        #             box_mask &= (centers[:, i] < max_val)
+        #
+        #     # Filter bounding boxes and labels
+        #     results['gt_bboxes_3d'] = gt_bboxes_3d[box_mask]
+        #     results['gt_labels_3d'] = gt_labels_3d[box_mask]
+
+        return results
+
+    def __repr__(self):
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(point_box_type={self.point_box_type})'
         return repr_str

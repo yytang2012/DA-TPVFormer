@@ -79,6 +79,10 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
+    dict(  # Filter points not in the range
+        type='PointsBoxFilter',
+        # point_box_type=((0, 25), (-10, 10), (None, None))
+    ),
     dict(
         type='Pack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask'],
