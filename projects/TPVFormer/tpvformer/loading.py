@@ -175,23 +175,22 @@ class SegLabelMapping(BaseTransform):
 @TRANSFORMS.register_module()
 class PointsBoxFilter(BaseTransform):
     """Filter points by a 3D box range.
-
     Args:
         point_box_type (tuple): A tuple of three tuples, each containing min and max values
             for x, y, and z dimensions respectively. Use None for no limit in a dimension.
             Format: ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+        keep_inside (bool): If True, keep points inside the box. If False, keep points outside the box.
     """
 
-    def __init__(self, point_box_type=((None, None), (None, None), (None, None))):
+    def __init__(self, point_box_type=((None, None), (None, None), (None, None)), keep_inside=True):
         self.point_box_type = point_box_type
+        self.keep_inside = keep_inside
         super().__init__()
 
     def transform(self, results: dict) -> dict:
         """Transform function to filter points.
-
         Args:
             results (dict): Result dict from loading pipeline.
-
         Returns:
             dict: Results after filtering, 'points', 'pts_instance_mask'
             and 'pts_semantic_mask' keys are updated in the result dict.
@@ -209,6 +208,10 @@ class PointsBoxFilter(BaseTransform):
             if max_val is not None:
                 mask &= (coords[:, i] < max_val)
 
+        # Invert mask if we want to keep points outside the box
+        if not self.keep_inside:
+            mask = ~mask
+
         # Filter points
         results['points'] = points[mask]
 
@@ -218,10 +221,10 @@ class PointsBoxFilter(BaseTransform):
 
         if 'pts_semantic_mask' in results:
             results['pts_semantic_mask'] = results['pts_semantic_mask'][mask]
-            results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask'][mask]
+            if 'eval_ann_info' in results and 'pts_semantic_mask' in results['eval_ann_info']:
+                results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask'][mask]
 
-        # TODO:
-        # # Filter ground truth bounding boxes if they exist
+        # TODO: Uncomment and adjust this part if you want to filter bounding boxes
         # if 'gt_bboxes_3d' in results:
         #     gt_bboxes_3d = results['gt_bboxes_3d']
         #     gt_labels_3d = results['gt_labels_3d']
@@ -239,6 +242,10 @@ class PointsBoxFilter(BaseTransform):
         #         if max_val is not None:
         #             box_mask &= (centers[:, i] < max_val)
         #
+        #     # Invert box_mask if we want to keep boxes outside the specified range
+        #     if not self.keep_inside:
+        #         box_mask = ~box_mask
+        #
         #     # Filter bounding boxes and labels
         #     results['gt_bboxes_3d'] = gt_bboxes_3d[box_mask]
         #     results['gt_labels_3d'] = gt_labels_3d[box_mask]
@@ -248,5 +255,6 @@ class PointsBoxFilter(BaseTransform):
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(point_box_type={self.point_box_type})'
+        repr_str += f'(point_box_type={self.point_box_type}, '
+        repr_str += f'keep_inside={self.keep_inside})'
         return repr_str
