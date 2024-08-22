@@ -81,9 +81,8 @@ val_pipeline = [
     dict(type='SegLabelMapping'),
     dict(
         type='PointsBoxFilter',
-        # point_box_type=((-25, 25), (-10, 10), (None, None)),
-        point_box_type=((None, None), (None, None), (None, None)),
-        keep_inside=False
+        point_box_type=((-25, 25), (-10, 10), (None, None)),
+        keep_inside=True
     ),
     dict(
         type='Pack3DDetInputs',
