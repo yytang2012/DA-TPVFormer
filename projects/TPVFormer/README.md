@@ -32,6 +32,11 @@ In MMDetection3D's root directory, run the following command to train the model:
 bash tools/dist_train.sh projects/TPVFormer/config/tpvformer_8xb1-2x_nus-seg.py 8
 ```
 
+or train directly with python script
+```shell
+python tools/train.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg-small-mini-test.py  --launcher pytorch
+```
+
 ### Testing commands
 
 In MMDetection3D's root directory, run the following command to test the model on 8 GPUs:
