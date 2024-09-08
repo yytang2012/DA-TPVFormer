@@ -31,7 +31,8 @@ model = dict(
         init_cfg=dict(
             type='Pretrained',
             checkpoint=  # noqa: E251
-            'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa: E501
+            # 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa: E501
+            './checkpoints/swin_tiny_patch4_window7_224.pth'  # noqa: E501
         )),
     img_neck=dict(
         type='GeneralizedLSSFPN',
