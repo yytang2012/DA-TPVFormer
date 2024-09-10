@@ -39,16 +39,19 @@ python projects/BEVFusion/demo/multi_modality_demo.py demo/data/nuscenes/n015-20
 
 ### Training commands
 
-1. You should train the lidar-only detector first:
+1. You should train the lidar-only detector first: (Verified)
 
 ```bash
-bash tools/dist_train.py projects/BEVFusion/configs/bevfusion_lidar_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d.py 8
+bash tools/dist_train.py projects/BEVFusion/configs/bevfusion_lidar_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d.py 1 --amp
 ```
 
 2. Download the [Swin pre-trained model](https://download.openmmlab.com/mmdetection3d/v1.1.0_models/bevfusion/swint-nuimages-pretrained.pth). Given the image pre-trained backbone and the lidar-only pre-trained detector, you could train the lidar-camera fusion model:
 
 ```bash
-bash tools/dist_train.sh projects/BEVFusion/configs/bevfusion_lidar-cam_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d.py 8 --cfg-options load_from=${LIDAR_PRETRAINED_CHECKPOINT} model.img_backbone.init_cfg.checkpoint=${IMAGE_PRETRAINED_BACKBONE}
+export IMAGE_PRETRAINED_BACKBONE=./checkpoints/swint-nuimages-pretrained.pth
+export LIDAR_PRETRAINED_CHECKPOINT=./checkpoints/bevfusion_lidar_mini_checkpoint.pth
+bash tools/dist_train.sh projects/BEVFusion/configs/bevfusion_lidar-cam_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d-test.py 1 --cfg-options load_from=${LIDAR_PRETRAINED_CHECKPOINT} model.img_backbone.init_cfg.checkpoint=${IMAGE_PRETRAINED_BACKBONE}
+
 ```
 
 **Note** that if you want to reduce CUDA memory usage and computational overhead, you could directly add `--amp` on the tail of the above commands. The model under this setting will be trained in fp16 mode.
@@ -58,9 +61,16 @@ bash tools/dist_train.sh projects/BEVFusion/configs/bevfusion_lidar-cam_voxel007
 In MMDetection3D's root directory, run the following command to test the model:
 
 ```bash
+bash tools/dist_test.sh projects/BEVFusion/configs/bevfusion_lidar_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d-mini.py ./checkpoints/bevfusion_lidar_mini_checkpoint.pth 1
+
 bash tools/dist_test.sh projects/BEVFusion/configs/bevfusion_lidar-cam_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d.py ${CHECKPOINT_PATH} 8
+
 ```
 
+or test with python script
+```bash
+python tools/test.py ./projects/BEVFusion/configs/bevfusion_lidar-cam_voxel0075_second_secfpn_8xb4-cyclic-20e_nus-3d-test.py ./checkpoints/bevfusion_converted.pth --launcher pytorch
+```
 ## Results and models
 
 ### NuScenes
