@@ -3,7 +3,8 @@ _base_ = [
     '../../../configs/_base_/default_runtime.py'
 ]
 
-custom_imports = dict(imports=['projects.DETR3D.detr3d'])
+# custom_imports = dict(imports=['projects.DETR3D.detr3d'])
+custom_imports = dict(imports=['projects.BEVFormer.bevformer'])
 
 # Configuration for dataset
 dataset_type = 'NuScenesDataset'
