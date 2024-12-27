@@ -10,8 +10,8 @@ from mmengine.model import bias_init_with_prob
 from mmengine.utils.dl_utils import TORCH_VERSION
 
 from mmdet3d.models.task_modules.builder import build_bbox_coder
-from mmdet3d.registry import MODELS, TASK_UTILS
-from projects.BEVFormer.bevformer.util import normalize_bbox
+from mmdet3d.registry import MODELS
+from projects.BEVFormer.bevformer.utils.util import normalize_bbox
 
 
 @MODELS.register_module()

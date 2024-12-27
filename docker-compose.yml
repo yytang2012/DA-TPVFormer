@@ -1,0 +1,29 @@
+services:
+    mmdetection3d:
+        image: mmdetection3d:devel_pytorch
+        container_name: mmdetection3d_devel_pytorch
+        build:
+            context: .
+            dockerfile: Dockerfile_pytorch
+        volumes:
+#            - ${HOST_MODEL_DIR}:/models
+#            - .:/mmdetection3d
+            - /etc/localtime:/etc/localtime
+            - /tmp/.X11-unix:/tmp/.X11-unix
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                      - driver: nvidia
+                        device_ids: ['0']
+                        capabilities: [gpu]
+        environment:
+            - DISPLAY=$DISPLAY
+            - QT_X11_NO_MITSHM=1
+#            - INPUT_MODEL_NAME=${INPUT_MODEL_NAME}
+#            - OUTPUT_ENGINE_NAME=${OUTPUT_ENGINE_NAME}
+#            - TEST=${TEST}
+
+        stdin_open: true
+        tty: true
+#        command: python3 print_gpu_info.py

@@ -19,7 +19,7 @@ img_norm_cfg = dict(
 # data_root = 'data/nuscenes/'
 # file_client_args = dict(backend='disk')
 # Configuration for dataset
-dataset_type = 'NuScenesDataset'
+dataset_type = 'NuScenesTempralDataset'
 # available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
 dataset_version = "v1.0-mini"
 if dataset_version in {"v1.0-trainval", "v1.0-test"}:
@@ -28,6 +28,8 @@ if dataset_version in {"v1.0-trainval", "v1.0-test"}:
 else:
     data_root = 'data/nuscenes-mini/'
     eval_version = "v1.0-mini"
+
+use_can_bus = True
 
 # For nuScenes we usually do 10-class detection
 class_names = [
@@ -98,7 +100,7 @@ model = dict(
             type='PerceptionTransformer',
             rotate_prev_bev=True,
             use_shift=True,
-            use_can_bus=True,
+            use_can_bus=use_can_bus,
             embed_dims=_dim_,
             encoder=dict(
                 type='BEVFormerEncoder',
@@ -215,16 +217,24 @@ val_pipeline = [
     dict(
         type='LoadMultiViewImageFromFiles',
         to_float32=True,
-        num_views=6,
-        backend_args=backend_args),
-    dict(type='MultiViewWrapper',
-         transforms=dict(
-             type='RandomResize3D',
-             scale=(1600, 900),
-             ratio_range=(1., 1.),
-             keep_ratio=True)
-         ),
-    dict(type='Pack3DDetInputs', keys=['img'])
+        backend_args=None),  # Add backend_args for compatibility
+    dict(type='NormalizeMultiviewImage', **img_norm_cfg),
+    dict(
+        type='MultiScaleFlipAug3D',
+        img_scale=(1600, 900),
+        pts_scale_ratio=1,
+        flip=False,
+        transforms=[
+            dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
+            dict(type='PadMultiViewImage', size_divisor=32),
+            dict(
+                type='CustomCollect3D',  # Replace DefaultFormatBundle3D
+                keys=['img'],  # Keep only necessary keys
+                meta_keys=[  # Add meta_keys for temporal information
+                    'scene_token', 'can_bus', 'prev_bev_exists',
+                    'lidar2img', 'cam_intrinsic', 'lidar2cam'
+                ])
+        ])
 ]
 
 test_pipeline = val_pipeline
@@ -237,6 +247,7 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
+        use_can_bus=use_can_bus,
         ann_file='nuscenes_infos_train.pkl',
         pipeline=train_pipeline,
         modality=input_modality,
@@ -258,7 +269,9 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='nuscenes_infos_val.pkl',
+        use_can_bus=use_can_bus,
+        # ann_file='nuscenes_infos_val.pkl',
+        ann_file='nuscenes_temporal_infos_val.pkl',
         pipeline=test_pipeline,
         metainfo=metainfo,
         modality=input_modality,

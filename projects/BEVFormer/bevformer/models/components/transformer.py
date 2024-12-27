@@ -13,9 +13,9 @@ from torch.nn.init import normal_
 from torchvision.transforms.functional import rotate
 
 from mmdet3d.registry import MODELS
-from projects.BEVFormer.bevformer.bevformer_decoder import CustomMSDeformableAttention
-from projects.BEVFormer.bevformer.bevformer_spatial_cross_attention import MSDeformableAttention3D
-from projects.BEVFormer.bevformer.bevformer_temporal_self_attention import TemporalSelfAttention
+from projects.BEVFormer.bevformer import CustomMSDeformableAttention
+from projects.BEVFormer.bevformer.models.layers.spatial_cross_attention import MSDeformableAttention3D
+from projects.BEVFormer.bevformer.models.layers.temporal_self_attention import TemporalSelfAttention
 
 
 # from mmcv.cnn import xavier_init

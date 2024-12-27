@@ -2,7 +2,7 @@ import torch
 from mmdet.models.task_modules import BaseBBoxCoder
 
 from mmdet3d.registry import TASK_UTILS
-from .util import denormalize_bbox
+from projects.BEVFormer.bevformer.utils.util import denormalize_bbox
 
 
 @TASK_UTILS.register_module()

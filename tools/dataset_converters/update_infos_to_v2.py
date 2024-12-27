@@ -266,9 +266,11 @@ def update_nuscenes_infos(pkl_path, out_dir):
         ('car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle',
          'motorcycle', 'pedestrian', 'traffic_cone', 'barrier'),
     }
+    import os
     nusc = NuScenes(
         version=data_list['metadata']['version'],
-        dataroot='./data/nuscenes',
+        # dataroot='./data/nuscenes',
+        dataroot=os.path.dirname(pkl_path),
         verbose=True)
 
     print('Start updating:')
@@ -368,7 +370,18 @@ def update_nuscenes_infos(pkl_path, out_dir):
         if 'pts_semantic_mask_path' in ori_info_dict:
             temp_data_info['pts_semantic_mask_path'] = Path(
                 ori_info_dict['pts_semantic_mask_path']).name
-        temp_data_info, _ = clear_data_info_unused_keys(temp_data_info)
+        # Yutao Tang
+        # temp_data_info, _ = clear_data_info_unused_keys(temp_data_info)
+        temp_data_info.update({
+            'scene_token': ori_info_dict['scene_token'],
+            'prev': ori_info_dict.get('prev', None),
+            'next': ori_info_dict.get('next', None),
+            'frame_idx': ori_info_dict.get('frame_idx', 0),
+            'can_bus': ori_info_dict.get('can_bus', None),
+            'ego2global_translation': ori_info_dict.get('ego2global_translation', None),
+            'ego2global_rotation': ori_info_dict.get('ego2global_rotation', None)
+
+        })
         converted_list.append(temp_data_info)
     pkl_name = Path(pkl_path).name
     out_path = osp.join(out_dir, pkl_name)
