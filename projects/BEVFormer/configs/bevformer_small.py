@@ -226,7 +226,7 @@ val_pipeline = [
         pts_scale_ratio=1,
         flip=False,
         transforms=[
-            dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
+            # dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
             dict(type='PadMultiViewImage', size_divisor=32),
             # dict(
             #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D

@@ -333,8 +333,9 @@ class RandomScaleImageMultiViewImage(BaseTransform):
         results['img'] = [mmcv.imresize(img, (x_size[idx], y_size[idx]),
                                         return_scale=False) for idx, img in enumerate(results['img'])]
 
-        # lidar2img = [scale_factor @ l2i for l2i in results['lidar2img']]
-        # results['lidar2img'] = lidar2img
+        # TODO: fix the following
+        lidar2img = [scale_factor @ l2i for l2i in results['lidar2img']]
+        results['lidar2img'] = lidar2img
         results['img_shape'] = [img.shape for img in results['img']]
         results['ori_shape'] = [img.shape for img in results['img']]
 

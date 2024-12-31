@@ -416,7 +416,7 @@ class BEVFormer(MVXTwoStageDetector):
         return outs['bev_embed'], bbox_results
 
     #
-    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None, rescale=False):
+    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None, rescale=True):
         """Test function without augmentaiton."""
         img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
 
@@ -460,9 +460,9 @@ class BEVFormer(MVXTwoStageDetector):
         self.prev_frame_info['prev_pos'] = tmp_pos
         self.prev_frame_info['prev_angle'] = tmp_angle
 
-        # Add prev_bev to meta info
-        for meta in batch_input_metas:
-            meta['prev_bev'] = self.prev_frame_info['prev_bev'] if self.video_test_mode else None
+        # # Add prev_bev to meta info
+        # for meta in batch_input_metas:
+        #     meta['prev_bev'] = self.prev_frame_info['prev_bev'] if self.video_test_mode else None
 
         return batch_input_metas
 
