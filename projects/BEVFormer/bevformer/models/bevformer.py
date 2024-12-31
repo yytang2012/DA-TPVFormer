@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Union
 import copy
 import torch
+from mmengine.structures import InstanceData
 from torch import Tensor
 from mmdet3d.structures.det3d_data_sample import (ForwardResults,
                                                   OptSampleList, SampleList)
@@ -315,7 +316,7 @@ class BEVFormer(MVXTwoStageDetector):
         return losses
 
     # def predict(self, img_metas, img=None, **kwargs):
-    def predict(self, inputs, data_samples, **kwargs) -> List[Det3DDataSample]:
+    def predict(self, inputs=None, data_samples=None, **kwargs):
         """Forward of testing.
 
         Args:
@@ -334,10 +335,18 @@ class BEVFormer(MVXTwoStageDetector):
         # Add motion and temporal information
         batch_input_metas = self.add_motion_info(batch_input_metas)
 
-        new_prev_bev, bbox_results = self.simple_test(
-            batch_input_metas=batch_input_metas, batch_inputs_dict=inputs, prev_bev=self.prev_frame_info['prev_bev'], **kwargs)
+        new_prev_bev, results_list_3d = self.simple_test(
+            batch_input_metas=batch_input_metas, batch_inputs_dict=inputs, prev_bev=self.prev_frame_info['prev_bev'],
+            **kwargs)
         self.prev_frame_info['prev_bev'] = new_prev_bev
-        return bbox_results
+
+        for i, data_sample in enumerate(data_samples):
+            results_list_3d_i = InstanceData(
+                metainfo=results_list_3d[i]['pts_bbox'])
+            data_sample.pred_instances_3d = results_list_3d_i
+            data_sample.pred_instances = InstanceData()
+
+        return data_samples
 
         # # Extract features
         # img_feats = self.extract_feat(inputs, batch_input_metas)
@@ -405,6 +414,7 @@ class BEVFormer(MVXTwoStageDetector):
             for bboxes, scores, labels in bbox_list
         ]
         return outs['bev_embed'], bbox_results
+
     #
     def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None, rescale=False):
         """Test function without augmentaiton."""

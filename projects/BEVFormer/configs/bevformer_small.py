@@ -290,6 +290,7 @@ val_dataloader = dict(
         use_can_bus=use_can_bus,
         # ann_file='nuscenes_infos_val.pkl',
         ann_file='nuscenes_temporal_infos_val.pkl',
+        show_ins_var=True,
         pipeline=test_pipeline,
         metainfo=metainfo,
         modality=input_modality,

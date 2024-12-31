@@ -74,6 +74,7 @@ class BEVFormerHead(DETRHead):
         self.real_w = self.pc_range[3] - self.pc_range[0]
         self.real_h = self.pc_range[4] - self.pc_range[1]
         self.num_cls_fcs = num_cls_fcs - 1
+        self.transformer = transformer
         super().__init__(
             *args,
             num_classes=num_classes,
@@ -87,7 +88,7 @@ class BEVFormerHead(DETRHead):
             **kwargs
         )
 
-        self.transformer = MODELS.build(transformer)
+        self.transformer = MODELS.build(self.transformer)
         self.positional_encoding = MODELS.build(positional_encoding)
         self.code_weights = nn.Parameter(torch.tensor(
             self.code_weights, requires_grad=False), requires_grad=False)
@@ -114,9 +115,8 @@ class BEVFormerHead(DETRHead):
 
         # last reg_branch is used to generate proposal from
         # encode feature map when as_two_stage is True.
-        # num_pred = (self.transformer.decoder.num_layers + 1) if \
-        #     self.as_two_stage else self.transformer.decoder.num_layers
-        num_pred = 6
+        num_pred = (self.transformer.decoder.num_layers + 1) if \
+            self.as_two_stage else self.transformer.decoder.num_layers
 
         if self.with_box_refine:
             self.cls_branches = _get_clones(fc_cls, num_pred)
