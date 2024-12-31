@@ -71,7 +71,7 @@ class NuScenesTempralDataset(NuScenesDataset):
                 ))
 
         # Process ego pose and can_bus only if not already processed
-        if 'can_bus' in input_dict and not isinstance(input_dict['can_bus'], np.ndarray):
+        if 'can_bus' in input_dict:
             rotation = Quaternion(input_dict['ego2global_rotation'])
             translation = input_dict['ego2global_translation']
             can_bus = np.zeros(18) if input_dict['can_bus'] is None else input_dict['can_bus']
