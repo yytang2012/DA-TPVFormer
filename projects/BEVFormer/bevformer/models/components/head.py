@@ -29,6 +29,7 @@ class BEVFormerHead(DETRHead):
 
     def __init__(
             self,
+            *args,
             num_query=900,
             num_classes=10,
             embed_dims=256,
@@ -46,6 +47,7 @@ class BEVFormerHead(DETRHead):
             loss_bbox=None,
             loss_iou=None,
             train_cfg=None,
+            positional_encoding=None,
             **kwargs
     ):
 
@@ -73,6 +75,7 @@ class BEVFormerHead(DETRHead):
         self.real_h = self.pc_range[4] - self.pc_range[1]
         self.num_cls_fcs = num_cls_fcs - 1
         super().__init__(
+            *args,
             num_classes=num_classes,
             embed_dims=embed_dims,
             sync_cls_avg_factor=sync_cls_avg_factor,
@@ -81,9 +84,11 @@ class BEVFormerHead(DETRHead):
             loss_bbox=loss_bbox,
             loss_iou=loss_iou,
             train_cfg=train_cfg,
+            **kwargs
         )
 
         self.transformer = MODELS.build(transformer)
+        self.positional_encoding = MODELS.build(positional_encoding)
         self.code_weights = nn.Parameter(torch.tensor(
             self.code_weights, requires_grad=False), requires_grad=False)
 

@@ -172,17 +172,18 @@ model = dict(
             loss_weight=2.0),
         loss_bbox=dict(type='mmdet.L1Loss', loss_weight=0.25),
         loss_iou=dict(type='mmdet.GIoULoss', loss_weight=0.0)),
-    train_cfg=dict(pts=dict(
-        grid_size=[512, 512, 1],
-        voxel_size=voxel_size,
-        point_cloud_range=point_cloud_range,
-        out_size_factor=4,
-        assigner=dict(
-            type='HungarianAssigner3D',
-            cls_cost=dict(type='mmdet.FocalLossCost', weight=2.0),
-            reg_cost=dict(type='BBox3DL1Cost', weight=0.25),
-            iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
-            pc_range=point_cloud_range))))
+    train_cfg=dict(
+        pts=dict(
+            grid_size=[512, 512, 1],
+            voxel_size=voxel_size,
+            point_cloud_range=point_cloud_range,
+            out_size_factor=4,
+            assigner=dict(
+                type='HungarianAssigner3D',
+                cls_cost=dict(type='mmdet.FocalLossCost', weight=2.0),
+                reg_cost=dict(type='BBox3DL1Cost', weight=0.25),
+                iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
+                pc_range=point_cloud_range))))
 
 backend_args = None
 train_pipeline = [
@@ -227,14 +228,31 @@ val_pipeline = [
         transforms=[
             dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
             dict(type='PadMultiViewImage', size_divisor=32),
-            dict(
-                type='CustomCollect3D',  # Replace DefaultFormatBundle3D
-                keys=['img'],  # Keep only necessary keys
-                meta_keys=[  # Add meta_keys for temporal information
-                    'scene_token', 'can_bus', 'prev_bev_exists',
-                    'lidar2img', 'cam_intrinsic', 'lidar2cam'
-                ])
-        ])
+            # dict(
+            #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D
+            #     keys=['img'])
+        ]),
+    dict(
+        type='Pack3DDetInputs',
+        keys=[
+            'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
+            'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
+        ],
+        meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
+                   'depth2img', 'cam2img', 'pad_shape',
+                   'scale_factor', 'flip', 'pcd_horizontal_flip',
+                   'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
+                   'img_norm_cfg', 'num_pts_feats', 'pcd_trans',
+                   'sample_idx', 'pcd_scale_factor', 'pcd_rotation',
+                   'pcd_rotation_angle', 'lidar_path',
+                   'transformation_3d_flow', 'trans_mat',
+                   'affine_aug', 'sweep_img_metas', 'ori_cam2img',
+                   'cam2global', 'crop_offset', 'img_crop_offset',
+                   'resize_img_shape', 'lidar2cam', 'ori_lidar2img',
+                   'num_ref_frames', 'num_views', 'ego2global',
+                   'axis_align_matrix',
+                   'prev_idx', 'next_idx', 'scene_token', 'can_bus')
+    )
 ]
 
 test_pipeline = val_pipeline
@@ -286,7 +304,7 @@ test_dataloader = val_dataloader
 val_evaluator = dict(
     type='NuScenesMetric',
     data_root=data_root,
-    ann_file=data_root + 'nuscenes_infos_temporal_val.pkl',
+    ann_file=data_root + 'nuscenes_temporal_infos_val.pkl',
     metric='bbox')
 test_evaluator = val_evaluator
 

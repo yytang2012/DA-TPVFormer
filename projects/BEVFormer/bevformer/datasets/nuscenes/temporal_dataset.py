@@ -4,6 +4,7 @@ import copy
 import random
 import numpy as np
 import torch
+from mmengine import print_log
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
 from mmdet3d.datasets import NuScenesDataset
 from mmdet3d.registry import DATASETS
@@ -37,37 +38,36 @@ class NuScenesTempralDataset(NuScenesDataset):
         else:
             self.nusc_can_bus = None
 
-    # TODO: to fix the bug
-    def get_data_info(self, index: int) -> Union[Dict, None]:
-        """Get data info according to index."""
-        info = super().get_data_info(index)
-        if info is None:
-            return None
+    def prepare_data(self, index: int) -> Union[Dict, None]:
+        """Prepare data for training or testing."""
 
-        # 只需保留必要的信息组织，不需要重复计算
-        input_dict = dict(
-            sample_idx=info['token'],
-            timestamp=info['timestamp'],
-            scene_token=info['scene_token'],
-            prev_idx=info.get('prev', None),
-            next_idx=info.get('next', None),
-            frame_idx=info.get('frame_idx', 0),
-            ego2global_translation=info['ego2global_translation'],
-            ego2global_rotation=info['ego2global_rotation']
+        ori_input_dict = self.get_data_info(index)
+        # deepcopy here to avoid inplace modification in pipeline.
+        input_dict = copy.deepcopy(ori_input_dict)
+
+        # box_type_3d (str): 3D box type.
+        input_dict['box_type_3d'] = self.box_type_3d
+        # box_mode_3d (str): 3D box mode.
+        input_dict['box_mode_3d'] = self.box_mode_3d
+
+        input_dict.update({
+            "prev_idx": ori_input_dict.get('prev', None),
+            "next_idx": ori_input_dict.get('next', None),
+            "frame_idx": ori_input_dict.get('frame_idx', 0), }
         )
 
         # CAN bus信息直接使用
         if self.use_can_bus is True:
-            input_dict['can_bus'] = info['can_bus']  # 直接使用已有的can_bus数据
+            input_dict['can_bus'] = ori_input_dict['can_bus']  # 直接使用已有的can_bus数据
 
         # 相机信息直接使用已经计算好的转换
         if self.modality['use_camera']:
             input_dict.update(
                 dict(
-                    img_path=[cam_info['img_path'] for cam_type, cam_info in info['images'].items()],
-                    lidar2img=[cam_info['lidar2img'] for cam_type, cam_info in info['images'].items()],
-                    cam_intrinsic=[cam_info['cam2img'] for cam_type, cam_info in info['images'].items()],
-                    lidar2cam=[cam_info['lidar2cam'] for cam_type, cam_info in info['images'].items()]
+                    img_path=[cam_info['img_path'] for cam_type, cam_info in ori_input_dict['images'].items()],
+                    lidar2img=[cam_info['lidar2img'] for cam_type, cam_info in ori_input_dict['images'].items()],
+                    cam_intrinsic=[cam_info['cam2img'] for cam_type, cam_info in ori_input_dict['images'].items()],
+                    lidar2cam=[cam_info['lidar2cam'] for cam_type, cam_info in ori_input_dict['images'].items()]
                 ))
 
         # Process ego pose and can_bus only if not already processed
@@ -84,22 +84,31 @@ class NuScenesTempralDataset(NuScenesDataset):
             can_bus[-1] = patch_angle
             input_dict['can_bus'] = can_bus
 
-        return input_dict
-
-    def prepare_data(self, index: int) -> Union[Dict, None]:
-        """Prepare data for training or testing."""
-        input_dict = self.get_data_info(index)
-        if input_dict is None:
-            return None
+        # pre-pipline return None to random another in `__getitem__`
+        if not self.test_mode and self.filter_empty_gt:
+            if len(input_dict['ann_info']['gt_labels_3d']) == 0:
+                return None
 
         example = self.pipeline(input_dict)
-        if self.test_mode:
-            return example
 
-        # Filter empty ground truth
-        if (not self.test_mode) and (example is None or
-                                     len(example['data_samples'].gt_instances_3d) == 0):
-            return None
+        if not self.test_mode and self.filter_empty_gt:
+            # after pipeline drop the example with empty annotations
+            # return None to random another in `__getitem__`
+            if example is None or len(
+                    example['data_samples'].gt_instances_3d.labels_3d) == 0:
+                return None
+
+        if self.show_ins_var:
+            if 'ann_info' in ori_input_dict:
+                self._show_ins_var(
+                    ori_input_dict['ann_info']['gt_labels_3d'],
+                    example['data_samples'].gt_instances_3d.labels_3d)
+            else:
+                print_log(
+                    "'ann_info' is not in the input dict. It's probably that "
+                    'the data is not in training mode',
+                    'current',
+                    level=30)
 
         return example
 

@@ -7,7 +7,7 @@ from mmdet3d.structures.det3d_data_sample import (ForwardResults,
 
 from mmdet3d.models import MVXTwoStageDetector
 from mmdet3d.registry import MODELS
-from mmdet3d.structures import Det3DDataSample
+from mmdet3d.structures import Det3DDataSample, bbox3d2result
 from mmdet3d.structures.bbox_3d.utils import get_lidar2img
 from projects.BEVFormer.bevformer.utils.grid_mask import GridMask
 
@@ -35,14 +35,34 @@ class BEVFormer(MVXTwoStageDetector):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None,
-                 video_test_mode=False
+                 video_test_mode=False,
+                 data_preprocessor=None,  # 添加 data_preprocessor
+                 init_cfg=None,  # 添加 init_cfg
+                 **kwargs
                  ):
 
-        super().__init__(pts_voxel_layer, pts_voxel_encoder,
-                         pts_middle_encoder, pts_fusion_layer,
-                         img_backbone, pts_backbone, img_neck, pts_neck,
-                         pts_bbox_head, img_roi_head, img_rpn_head,
-                         train_cfg, test_cfg, pretrained)
+        # super().__init__(pts_voxel_layer, pts_voxel_encoder,
+        #                  pts_middle_encoder, pts_fusion_layer,
+        #                  img_backbone, pts_backbone, img_neck, pts_neck,
+        #                  pts_bbox_head, img_roi_head, img_rpn_head,
+        #                  train_cfg, test_cfg, pretrained)
+        super().__init__(
+            pts_voxel_encoder=pts_voxel_encoder,
+            pts_middle_encoder=pts_middle_encoder,
+            pts_fusion_layer=pts_fusion_layer,
+            img_backbone=img_backbone,
+            pts_backbone=pts_backbone,
+            img_neck=img_neck,
+            pts_neck=pts_neck,
+            pts_bbox_head=pts_bbox_head,
+            img_roi_head=img_roi_head,
+            img_rpn_head=img_rpn_head,
+            train_cfg=train_cfg,
+            test_cfg=test_cfg,
+            init_cfg=init_cfg,  # 添加 init_cfg
+            data_preprocessor=data_preprocessor,  # 添加 data_preprocessor
+            **kwargs
+        )
         self.grid_mask = GridMask(
             True, True, rotate=1, offset=False, ratio=0.5, mode=1, prob=0.7)
         self.use_grid_mask = use_grid_mask
@@ -150,7 +170,9 @@ class BEVFormer(MVXTwoStageDetector):
         Returns:
             list[tensor]: Multi-level image features.
         """
-        img = batch_inputs_dict['imgs']
+        img = batch_inputs_dict['img']
+        if isinstance(img, list):
+            img = torch.stack(img, dim=0)
         img_feats = self.extract_img_feat(img, batch_input_metas)
         return img_feats
 
@@ -201,21 +223,19 @@ class BEVFormer(MVXTwoStageDetector):
     #         raise RuntimeError(f'Invalid mode "{mode}". '
     #                            'Only supports loss, predict and tensor mode')
 
-    def forward(self,
-                data,
-                mode: str = 'predict',
-                **kwargs) -> ForwardResults:
-        if mode == 'loss':
-            return self.loss(**data)
-        elif mode == 'predict':
-            return self.predict(**data)
-        # elif mode == 'tensor':
-        #     return self._forward(inputs, data_samples, **kwargs)
-        else:
-            raise RuntimeError(f'Invalid mode "{mode}". '
-                               'Only supports loss, predict and tensor mode')
-
-
+    # def forward(self,
+    #             data,
+    #             mode: str = 'predict',
+    #             **kwargs) -> ForwardResults:
+    #     if mode == 'loss':
+    #         return self.loss(**data)
+    #     elif mode == 'predict':
+    #         return self.predict(**data)
+    #     # elif mode == 'tensor':
+    #     #     return self._forward(inputs, data_samples, **kwargs)
+    #     else:
+    #         raise RuntimeError(f'Invalid mode "{mode}". '
+    #                            'Only supports loss, predict and tensor mode')
 
     def obtain_history_bev(self, imgs_queue, img_metas_list):
         """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
@@ -295,7 +315,7 @@ class BEVFormer(MVXTwoStageDetector):
         return losses
 
     # def predict(self, img_metas, img=None, **kwargs):
-    def predict(self, inputs,  data_samples, **kwargs) -> List[Det3DDataSample]:
+    def predict(self, inputs, data_samples, **kwargs) -> List[Det3DDataSample]:
         """Forward of testing.
 
         Args:
@@ -314,25 +334,30 @@ class BEVFormer(MVXTwoStageDetector):
         # Add motion and temporal information
         batch_input_metas = self.add_motion_info(batch_input_metas)
 
-        # Extract features
-        img_feats = self.extract_feat(inputs, batch_input_metas)
+        new_prev_bev, bbox_results = self.simple_test(
+            batch_input_metas=batch_input_metas, batch_inputs_dict=inputs, prev_bev=self.prev_frame_info['prev_bev'], **kwargs)
+        self.prev_frame_info['prev_bev'] = new_prev_bev
+        return bbox_results
 
-        # Get model outputs
-        outs = self.pts_bbox_head(img_feats, batch_input_metas,
-                                 prev_bev=batch_input_metas[0]['prev_bev'])
+        # # Extract features
+        # img_feats = self.extract_feat(inputs, batch_input_metas)
+        #
+        # # Get model outputs
+        # outs = self.pts_bbox_head(img_feats, batch_input_metas,
+        #                           prev_bev=batch_input_metas[0]['prev_bev'])
+        #
+        # # Store BEV features for next frame
+        # self.prev_frame_info['prev_bev'] = outs['bev_embed']
+        #
+        # # Get 3D detection results
+        # results_list_3d = self.pts_bbox_head.predict_by_feat(
+        #     outs, batch_input_metas, **kwargs)
+        #
+        # # Format results
+        # det_samples = self.add_pred_to_datasample(data_samples,
+        #                                           results_list_3d)
 
-        # Store BEV features for next frame
-        self.prev_frame_info['prev_bev'] = outs['bev_embed']
-
-        # Get 3D detection results
-        results_list_3d = self.pts_bbox_head.predict_by_feat(
-            outs, batch_input_metas, **kwargs)
-
-        # Format results
-        det_samples = self.add_pred_to_datasample(data_samples,
-                                                  results_list_3d)
-
-        return det_samples
+        # return det_samples
         #
         # # TODO: fix the following
         # for var, name in [(img_metas, 'img_metas')]:
@@ -369,29 +394,28 @@ class BEVFormer(MVXTwoStageDetector):
         # self.prev_frame_info['prev_bev'] = new_prev_bev
         # return bbox_results
 
+    def simple_test_pts(self, x, batch_input_metas, prev_bev=None, rescale=False):
+        """Test function"""
+        outs = self.pts_bbox_head(x, batch_input_metas, prev_bev=prev_bev)
 
-    # def simple_test_pts(self, x, img_metas, prev_bev=None, rescale=False):
-    #     """Test function"""
-    #     outs = self.pts_bbox_head(x, img_metas, prev_bev=prev_bev)
+        bbox_list = self.pts_bbox_head.get_bboxes(
+            outs, batch_input_metas, rescale=rescale)
+        bbox_results = [
+            bbox3d2result(bboxes, scores, labels)
+            for bboxes, scores, labels in bbox_list
+        ]
+        return outs['bev_embed'], bbox_results
     #
-    #     bbox_list = self.pts_bbox_head.get_bboxes(
-    #         outs, img_metas, rescale=rescale)
-    #     bbox_results = [
-    #         bbox3d2result(bboxes, scores, labels)
-    #         for bboxes, scores, labels in bbox_list
-    #     ]
-    #     return outs['bev_embed'], bbox_results
-    #
-    # def simple_test(self, img_metas, img=None, prev_bev=None, rescale=False):
-    #     """Test function without augmentaiton."""
-    #     img_feats = self.extract_feat(img=img, img_metas=img_metas)
-    #
-    #     bbox_list = [dict() for i in range(len(img_metas))]
-    #     new_prev_bev, bbox_pts = self.simple_test_pts(
-    #         img_feats, img_metas, prev_bev, rescale=rescale)
-    #     for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
-    #         result_dict['pts_bbox'] = pts_bbox
-    #     return new_prev_bev, bbox_list
+    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None, rescale=False):
+        """Test function without augmentaiton."""
+        img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
+
+        bbox_list = [dict() for i in range(len(batch_input_metas))]
+        new_prev_bev, bbox_pts = self.simple_test_pts(
+            img_feats, batch_input_metas, prev_bev, rescale=rescale)
+        for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
+            result_dict['pts_bbox'] = pts_bbox
+        return new_prev_bev, bbox_list
 
     def add_motion_info(self, batch_input_metas: List[Dict]) -> List[Dict]:
         """Add temporal and ego motion information into batch_input_metas.
