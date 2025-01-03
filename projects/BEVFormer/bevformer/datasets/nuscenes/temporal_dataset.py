@@ -56,11 +56,9 @@ class NuScenesTempralDataset(NuScenesDataset):
             "frame_idx": ori_input_dict.get('frame_idx', 0), }
         )
 
-        # CAN bus信息直接使用
         if self.use_can_bus is True:
-            input_dict['can_bus'] = ori_input_dict['can_bus']  # 直接使用已有的can_bus数据
+            input_dict['can_bus'] = ori_input_dict['can_bus']
 
-        # 相机信息直接使用已经计算好的转换
         if self.modality['use_camera']:
             input_dict.update(
                 dict(

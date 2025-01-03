@@ -80,41 +80,6 @@ class BEVFormer(MVXTwoStageDetector):
             'prev_angle': 0,
         }
 
-    # def extract_img_feat(self, img, img_metas, len_queue=None):
-    #     """Extract features of images."""
-    #     B = img.size(0)
-    #     if img is not None:
-    #
-    #         # input_shape = img.shape[-2:]
-    #         # # update real input shape of each single img
-    #         # for img_meta in img_metas:
-    #         #     img_meta.update(input_shape=input_shape)
-    #
-    #         if img.dim() == 5 and img.size(0) == 1:
-    #             img.squeeze_()
-    #         elif img.dim() == 5 and img.size(0) > 1:
-    #             B, N, C, H, W = img.size()
-    #             img = img.reshape(B * N, C, H, W)
-    #         if self.use_grid_mask:
-    #             img = self.grid_mask(img)
-    #
-    #         img_feats = self.img_backbone(img)
-    #         if isinstance(img_feats, dict):
-    #             img_feats = list(img_feats.values())
-    #     else:
-    #         return None
-    #     if self.with_img_neck:
-    #         img_feats = self.img_neck(img_feats)
-    #
-    #     img_feats_reshaped = []
-    #     for img_feat in img_feats:
-    #         BN, C, H, W = img_feat.size()
-    #         if len_queue is not None:
-    #             img_feats_reshaped.append(img_feat.view(int(B / len_queue), len_queue, int(BN / B), C, H, W))
-    #         else:
-    #             img_feats_reshaped.append(img_feat.view(B, int(BN / B), C, H, W))
-    #     return img_feats_reshaped
-
     def extract_img_feat(self, img: Tensor,
                          batch_input_metas: List[dict]) -> List[Tensor]:
         """Extract features from images.
@@ -210,35 +175,6 @@ class BEVFormer(MVXTwoStageDetector):
     def forward_dummy(self, img):
         dummy_metas = None
         return self.forward_test(img=img, img_metas=[[dummy_metas]])
-
-    # def forward(self,
-    #             inputs: Union[dict, List[dict]],
-    #             data_samples: OptSampleList = None,
-    #             mode: str = 'tensor',
-    #             **kwargs) -> ForwardResults:
-    #     if mode == 'loss':
-    #         return self.loss(inputs, data_samples, **kwargs)
-    #     elif mode == 'predict':
-    #         return self.predict(inputs, data_samples, **kwargs)
-    #     elif mode == 'tensor':
-    #         return self._forward(inputs, data_samples, **kwargs)
-    #     else:
-    #         raise RuntimeError(f'Invalid mode "{mode}". '
-    #                            'Only supports loss, predict and tensor mode')
-
-    # def forward(self,
-    #             data,
-    #             mode: str = 'predict',
-    #             **kwargs) -> ForwardResults:
-    #     if mode == 'loss':
-    #         return self.loss(**data)
-    #     elif mode == 'predict':
-    #         return self.predict(**data)
-    #     # elif mode == 'tensor':
-    #     #     return self._forward(inputs, data_samples, **kwargs)
-    #     else:
-    #         raise RuntimeError(f'Invalid mode "{mode}". '
-    #                            'Only supports loss, predict and tensor mode')
 
     def obtain_history_bev(self, imgs_queue, img_metas_list):
         """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
@@ -353,61 +289,6 @@ class BEVFormer(MVXTwoStageDetector):
 
         return data_samples
 
-        # # Extract features
-        # img_feats = self.extract_feat(inputs, batch_input_metas)
-        #
-        # # Get model outputs
-        # outs = self.pts_bbox_head(img_feats, batch_input_metas,
-        #                           prev_bev=batch_input_metas[0]['prev_bev'])
-        #
-        # # Store BEV features for next frame
-        # self.prev_frame_info['prev_bev'] = outs['bev_embed']
-        #
-        # # Get 3D detection results
-        # results_list_3d = self.pts_bbox_head.predict_by_feat(
-        #     outs, batch_input_metas, **kwargs)
-        #
-        # # Format results
-        # det_samples = self.add_pred_to_datasample(data_samples,
-        #                                           results_list_3d)
-
-        # return det_samples
-        #
-        # # TODO: fix the following
-        # for var, name in [(img_metas, 'img_metas')]:
-        #     if not isinstance(var, list):
-        #         raise TypeError('{} must be a list, but got {}'.format(
-        #             name, type(var)))
-        # img = [img] if img is None else img
-        #
-        # if img_metas[0][0]['scene_token'] != self.prev_frame_info['scene_token']:
-        #     # the first sample of each scene is truncated
-        #     self.prev_frame_info['prev_bev'] = None
-        # # update idx
-        # self.prev_frame_info['scene_token'] = img_metas[0][0]['scene_token']
-        #
-        # # do not use temporal information
-        # if not self.video_test_mode:
-        #     self.prev_frame_info['prev_bev'] = None
-        #
-        # # Get the delta of ego position and angle between two timestamps.
-        # tmp_pos = copy.deepcopy(img_metas[0][0]['can_bus'][:3])
-        # tmp_angle = copy.deepcopy(img_metas[0][0]['can_bus'][-1])
-        # if self.prev_frame_info['prev_bev'] is not None:
-        #     img_metas[0][0]['can_bus'][:3] -= self.prev_frame_info['prev_pos']
-        #     img_metas[0][0]['can_bus'][-1] -= self.prev_frame_info['prev_angle']
-        # else:
-        #     img_metas[0][0]['can_bus'][-1] = 0
-        #     img_metas[0][0]['can_bus'][:3] = 0
-        #
-        # new_prev_bev, bbox_results = self.simple_test(
-        #     img_metas[0], img[0], prev_bev=self.prev_frame_info['prev_bev'], **kwargs)
-        # # During inference, we save the BEV features and ego motion of each timestamp.
-        # self.prev_frame_info['prev_pos'] = tmp_pos
-        # self.prev_frame_info['prev_angle'] = tmp_angle
-        # self.prev_frame_info['prev_bev'] = new_prev_bev
-        # return bbox_results
-
     def simple_test_pts(self, x, batch_input_metas, prev_bev=None):
         """Test function"""
         outs = self.pts_bbox_head(x, batch_input_metas, prev_bev=prev_bev)
@@ -420,7 +301,6 @@ class BEVFormer(MVXTwoStageDetector):
         ]
         return outs['bev_embed'], bbox_results
 
-    #
     def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None):
         """Test function without augmentaiton."""
         img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
@@ -466,8 +346,8 @@ class BEVFormer(MVXTwoStageDetector):
         self.prev_frame_info['prev_angle'] = tmp_angle
 
         # # Add prev_bev to meta info
-        # for meta in batch_input_metas:
-        #     meta['prev_bev'] = self.prev_frame_info['prev_bev'] if self.video_test_mode else None
+        for meta in batch_input_metas:
+            meta['prev_bev'] = self.prev_frame_info['prev_bev'] if self.video_test_mode else None
 
         return batch_input_metas
 
