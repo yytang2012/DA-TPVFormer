@@ -35,6 +35,7 @@ class BEVFormer(MVXTwoStageDetector):
                  img_rpn_head=None,
                  train_cfg=None,
                  test_cfg=None,
+                 rescale=False,
                  pretrained=None,
                  video_test_mode=False,
                  data_preprocessor=None,  # 添加 data_preprocessor
@@ -68,6 +69,7 @@ class BEVFormer(MVXTwoStageDetector):
             True, True, rotate=1, offset=False, ratio=0.5, mode=1, prob=0.7)
         self.use_grid_mask = use_grid_mask
         self.fp16_enabled = False
+        self.rescale = rescale
 
         # temporal
         self.video_test_mode = video_test_mode
@@ -336,9 +338,12 @@ class BEVFormer(MVXTwoStageDetector):
         batch_input_metas = self.add_motion_info(batch_input_metas)
 
         new_prev_bev, results_list_3d = self.simple_test(
-            batch_input_metas=batch_input_metas, batch_inputs_dict=inputs, prev_bev=self.prev_frame_info['prev_bev'],
-            **kwargs)
-        self.prev_frame_info['prev_bev'] = new_prev_bev
+            batch_input_metas=batch_input_metas,
+            batch_inputs_dict=inputs,
+            prev_bev=self.prev_frame_info['prev_bev'],
+            **kwargs
+        )
+        self.prev_frame_info['prev_bev'] = new_prev_bev if self.video_test_mode else None
 
         for i, data_sample in enumerate(data_samples):
             results_list_3d_i = InstanceData(
@@ -403,12 +408,12 @@ class BEVFormer(MVXTwoStageDetector):
         # self.prev_frame_info['prev_bev'] = new_prev_bev
         # return bbox_results
 
-    def simple_test_pts(self, x, batch_input_metas, prev_bev=None, rescale=False):
+    def simple_test_pts(self, x, batch_input_metas, prev_bev=None):
         """Test function"""
         outs = self.pts_bbox_head(x, batch_input_metas, prev_bev=prev_bev)
 
         bbox_list = self.pts_bbox_head.get_bboxes(
-            outs, batch_input_metas, rescale=rescale)
+            outs, batch_input_metas, rescale=self.rescale)
         bbox_results = [
             bbox3d2result(bboxes, scores, labels)
             for bboxes, scores, labels in bbox_list
@@ -416,13 +421,13 @@ class BEVFormer(MVXTwoStageDetector):
         return outs['bev_embed'], bbox_results
 
     #
-    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None, rescale=True):
+    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None):
         """Test function without augmentaiton."""
         img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
 
         bbox_list = [dict() for i in range(len(batch_input_metas))]
         new_prev_bev, bbox_pts = self.simple_test_pts(
-            img_feats, batch_input_metas, prev_bev, rescale=rescale)
+            img_feats, batch_input_metas, prev_bev)
         for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
             result_dict['pts_bbox'] = pts_bbox
         return new_prev_bev, bbox_list

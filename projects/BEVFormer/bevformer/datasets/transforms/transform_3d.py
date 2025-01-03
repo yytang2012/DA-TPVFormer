@@ -313,32 +313,40 @@ class RandomScaleImageMultiViewImage(BaseTransform):
 
     def transform(self, results: dict) -> dict:
         """Apply the transform.
-
         Args:
             results (dict): Result dict from loading pipeline.
-
         Returns:
             dict: Updated result dict.
         """
         rand_ind = np.random.permutation(range(len(self.scales)))[0]
         rand_scale = self.scales[rand_ind]
-
         y_size = [int(img.shape[0] * rand_scale) for img in results['img']]
         x_size = [int(img.shape[1] * rand_scale) for img in results['img']]
 
-        scale_factor = np.eye(4)
-        scale_factor[0, 0] *= rand_scale
-        scale_factor[1, 1] *= rand_scale
+        # 将第一个相机矩阵转换为numpy数组（如果它还不是）
+        cam_matrix = np.array(results['cam2img'][0])  # 转换为numpy数组
+        matrix_shape = cam_matrix.shape
+
+        # 根据 cam2img 的维度创建对应的 scale_factor
+        if matrix_shape == (3, 3):
+            scale_factor = np.eye(3)
+            scale_factor[0, 0] *= rand_scale
+            scale_factor[1, 1] *= rand_scale
+        elif matrix_shape == (3, 4):
+            scale_factor = np.eye(3, 4)
+            scale_factor[0, 0] *= rand_scale
+            scale_factor[1, 1] *= rand_scale
+        else:
+            raise ValueError(f'Unsupported camera matrix shape: {matrix_shape}')
 
         results['img'] = [mmcv.imresize(img, (x_size[idx], y_size[idx]),
                                         return_scale=False) for idx, img in enumerate(results['img'])]
 
-        # TODO: fix the following
-        lidar2img = [scale_factor @ l2i for l2i in results['lidar2img']]
-        results['lidar2img'] = lidar2img
+        # 确保所有的cam2img矩阵都是numpy数组
+        results['cam2img'] = [scale_factor @ np.array(c2i) for c2i in results['cam2img']]
+
         results['img_shape'] = [img.shape for img in results['img']]
         results['ori_shape'] = [img.shape for img in results['img']]
-
         return results
 
     def __repr__(self) -> str:

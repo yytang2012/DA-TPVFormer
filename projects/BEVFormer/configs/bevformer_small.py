@@ -66,6 +66,7 @@ model = dict(
     type='BEVFormer',
     use_grid_mask=True,
     video_test_mode=True,
+    rescale=True,
     img_backbone=dict(
         type='mmdet.ResNet',
         depth=101,
@@ -226,7 +227,7 @@ val_pipeline = [
         pts_scale_ratio=1,
         flip=False,
         transforms=[
-            # dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
+            dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
             dict(type='PadMultiViewImage', size_divisor=32),
             # dict(
             #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D
@@ -253,6 +254,7 @@ val_pipeline = [
                    'axis_align_matrix',
                    'prev_idx', 'next_idx', 'scene_token', 'can_bus')
     )
+
 ]
 
 test_pipeline = val_pipeline
