@@ -136,7 +136,7 @@ class NuScenesTempralDataset(NuScenesDataset):
         prev_angle = None
 
         # Collect image tensors
-        imgs_list = [each['inputs'] for each in queue]
+        imgs_list = [each['inputs']['img'] for each in queue]
         result_dict['inputs'] = torch.stack(imgs_list)
 
         # Process each frame's meta information

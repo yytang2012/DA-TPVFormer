@@ -196,8 +196,29 @@ train_pipeline = [
     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
     dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
     dict(type='PadMultiViewImage', size_divisor=32),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
+    # dict(type='DefaultFormatBundle3D', class_names=class_names),
+    # dict(type='Collect3D', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
+    dict(
+        type='Pack3DDetInputs',
+        keys=[
+            'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
+            'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
+        ],
+        meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
+                   'depth2img', 'cam2img', 'pad_shape',
+                   'scale_factor', 'flip', 'pcd_horizontal_flip',
+                   'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
+                   'img_norm_cfg', 'num_pts_feats', 'pcd_trans',
+                   'sample_idx', 'pcd_scale_factor', 'pcd_rotation',
+                   'pcd_rotation_angle', 'lidar_path',
+                   'transformation_3d_flow', 'trans_mat',
+                   'affine_aug', 'sweep_img_metas', 'ori_cam2img',
+                   'cam2global', 'crop_offset', 'img_crop_offset',
+                   'resize_img_shape', 'lidar2cam', 'ori_lidar2img',
+                   'num_ref_frames', 'num_views', 'ego2global',
+                   'axis_align_matrix',
+                   'prev_idx', 'next_idx', 'scene_token', 'can_bus')
+    )
 ]
 
 # test_pipeline = [
@@ -268,7 +289,8 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         use_can_bus=use_can_bus,
-        ann_file='nuscenes_infos_train.pkl',
+        # ann_file='nuscenes_infos_train.pkl',
+        ann_file='nuscenes_temporal_infos_val.pkl',
         pipeline=train_pipeline,
         modality=input_modality,
         metainfo=metainfo,
@@ -314,14 +336,8 @@ test_evaluator = val_evaluator
 # optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(
-        type='AdamW',
-        lr=2e-4,
-        weight_decay=0.01,
-        paramwise_cfg=dict(
-            custom_keys={
-                'img_backbone': dict(lr_mult=0.1),
-            })),
+    optimizer=dict(type='AdamW', lr=2e-4, weight_decay=0.01),
+    paramwise_cfg=dict(custom_keys={'img_backbone': dict(lr_mult=0.1)}),
     clip_grad=dict(max_norm=35, norm_type=2))
 
 # learning policy
@@ -363,4 +379,4 @@ visualizer = dict(
     vis_backends=vis_backends,
     name='visualizer')
 
-load_from = 'ckpts/r101_dcn_fcos3d_pretrain.pth'
+load_from = 'checkpoints/r101_dcn_fcos3d_pretrain.pth'

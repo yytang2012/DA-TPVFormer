@@ -43,11 +43,6 @@ class BEVFormer(MVXTwoStageDetector):
                  **kwargs
                  ):
 
-        # super().__init__(pts_voxel_layer, pts_voxel_encoder,
-        #                  pts_middle_encoder, pts_fusion_layer,
-        #                  img_backbone, pts_backbone, img_neck, pts_neck,
-        #                  pts_bbox_head, img_roi_head, img_rpn_head,
-        #                  train_cfg, test_cfg, pretrained)
         super().__init__(
             pts_voxel_encoder=pts_voxel_encoder,
             pts_middle_encoder=pts_middle_encoder,
@@ -197,7 +192,24 @@ class BEVFormer(MVXTwoStageDetector):
             self.train()
             return prev_bev
 
+    # def loss(self,
+    #          points=None,
+    #          img_metas=None,
+    #          gt_bboxes_3d=None,
+    #          gt_labels_3d=None,
+    #          gt_labels=None,
+    #          gt_bboxes=None,
+    #          img=None,
+    #          proposals=None,
+    #          gt_bboxes_ignore=None,
+    #          img_depth=None,
+    #          img_mask=None,
+    #          ):
+    #
     def loss(self,
+             inputs=None,
+             data_samples=None,
+             mode=None,
              points=None,
              img_metas=None,
              gt_bboxes_3d=None,
@@ -208,8 +220,7 @@ class BEVFormer(MVXTwoStageDetector):
              proposals=None,
              gt_bboxes_ignore=None,
              img_depth=None,
-             img_mask=None,
-             ):
+             img_mask=None):
         """Forward training function.
         Args:
             points (list[torch.Tensor], optional): Points of each sample.
