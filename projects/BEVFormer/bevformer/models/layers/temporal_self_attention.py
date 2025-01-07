@@ -201,6 +201,11 @@ class TemporalSelfAttention(BaseModule):
         value = value.reshape(bs*self.num_bev_queue,
                               num_value, self.num_heads, -1)
 
+        # ensure bias and weights are on the same device
+        device = self.sampling_offsets.weight.device
+        if self.sampling_offsets.bias.device != device:
+            self.sampling_offsets.bias.data = self.sampling_offsets.bias.data.to(device)
+
         sampling_offsets = self.sampling_offsets(query)
         sampling_offsets = sampling_offsets.view(
             bs, num_query, self.num_heads,  self.num_bev_queue, self.num_levels, self.num_points, 2)

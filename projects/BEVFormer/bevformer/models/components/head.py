@@ -4,6 +4,7 @@ import torch.nn as nn
 from mmcv.cnn import Linear
 from mmdet.models import DETRHead, inverse_sigmoid
 from mmdet.models.utils import multi_apply
+from mmdet.registry import TASK_UTILS
 from mmdet.utils import reduce_mean
 from mmengine import digit_version
 from mmengine.model import bias_init_with_prob
@@ -89,6 +90,10 @@ class BEVFormerHead(DETRHead):
         )
 
         self.transformer = MODELS.build(self.transformer)
+        # DETR sampling=False, so use PseudoSampler, format the result
+        sampler_cfg = dict(type='PseudoSampler')
+        self.sampler = TASK_UTILS.build(sampler_cfg)
+
         self.positional_encoding = MODELS.build(positional_encoding)
         self.code_weights = nn.Parameter(torch.tensor(
             self.code_weights, requires_grad=False), requires_grad=False)

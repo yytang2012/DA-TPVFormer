@@ -163,6 +163,7 @@ class NuScenesTempralDataset(NuScenesDataset):
                 prev_pos = copy.deepcopy(tmp_pos)
                 prev_angle = copy.deepcopy(tmp_angle)
             metas_list.append(_meta)
+            each['data_samples'].set_metainfo(_meta)
 
         # result_dict['data_samples'].update({
         #     "metainfo": metas_map

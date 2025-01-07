@@ -326,6 +326,11 @@ class MSDeformableAttention3D(BaseModule):
         if key_padding_mask is not None:
             value = value.masked_fill(key_padding_mask[..., None], 0.0)
         value = value.view(bs, num_value, self.num_heads, -1)
+
+        device = self.sampling_offsets.weight.device
+        if self.sampling_offsets.bias.device != device:
+            self.sampling_offsets.bias.data = self.sampling_offsets.bias.data.to(device)
+
         sampling_offsets = self.sampling_offsets(query).view(
             bs, num_query, self.num_heads, self.num_levels, self.num_points, 2)
         attention_weights = self.attention_weights(query).view(
