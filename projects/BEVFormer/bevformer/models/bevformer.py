@@ -216,12 +216,10 @@ class BEVFormer(MVXTwoStageDetector):
     #          img_mask=None,
     #          ):
     #
-    def loss(self,
-             inputs=None,
+    def loss(self, inputs=None,
              data_samples=None,
-             prev_samples=None,
-             prev_metas=None,
-             prev_images=None):
+             prev_samples=None
+             ):
         """Forward training function.
         Args:
             points (list[torch.Tensor], optional): Points of each sample.
