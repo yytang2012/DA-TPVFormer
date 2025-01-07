@@ -76,10 +76,12 @@ class BEVFormer(MVXTwoStageDetector):
         }
 
     def extract_img_feat(self, img: Tensor,
-                         batch_input_metas: List[dict]) -> List[Tensor]:
+                         batch_input_metas: List[dict] = None,
+                         len_queue=None) -> List[Tensor]:
         """Extract features from images.
 
         Args:
+            len_queue:
             img (tensor): Batched multi-view image tensor with
                 shape (B, N, C, H, W).
             batch_input_metas (list[dict]): Meta information.
@@ -109,7 +111,10 @@ class BEVFormer(MVXTwoStageDetector):
         img_feats_reshaped = []
         for img_feat in img_feats:
             BN, C, H, W = img_feat.size()
-            img_feats_reshaped.append(img_feat.view(B, int(BN / B), C, H, W))
+            if len_queue is not None:
+                img_feats_reshaped.append(img_feat.view(int(B/len_queue), len_queue, int(BN / B), C, H, W))
+            else:
+                img_feats_reshaped.append(img_feat.view(B, int(BN / B), C, H, W))
 
         return img_feats_reshaped
 
@@ -141,9 +146,9 @@ class BEVFormer(MVXTwoStageDetector):
 
     def forward_pts_train(self,
                           pts_feats,
+                          img_metas,
                           gt_bboxes_3d,
                           gt_labels_3d,
-                          img_metas,
                           gt_bboxes_ignore=None,
                           prev_bev=None):
         """Forward function'
@@ -171,24 +176,29 @@ class BEVFormer(MVXTwoStageDetector):
         dummy_metas = None
         return self.forward_test(img=img, img_metas=[[dummy_metas]])
 
-    def obtain_history_bev(self, imgs_queue, img_metas_list):
+    def obtain_history_bev(self, prev_samples):
         """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
         """
         self.eval()
+        image_list = [_[0].img for _ in prev_samples]
+        meta_list = [_[0].metainfo for _ in prev_samples]
+        self.add_lidar2img(meta_list)
+        images_queue = torch.stack(image_list)
+        images_queue = images_queue.unsqueeze(0)
 
         with torch.no_grad():
             prev_bev = None
-            bs, len_queue, num_cams, C, H, W = imgs_queue.shape
-            imgs_queue = imgs_queue.reshape(bs * len_queue, num_cams, C, H, W)
-            img_feats_list = self.extract_feat(img=imgs_queue, len_queue=len_queue)
+            bs, len_queue, num_cams, C, H, W = images_queue.shape
+            images_queue = images_queue.reshape(bs * len_queue, num_cams, C, H, W)
+            img_feats_list = self.extract_img_feat(img=images_queue, len_queue=len_queue)
             for i in range(len_queue):
-                img_metas = [each[i] for each in img_metas_list]
-                if not img_metas[0]['prev_bev_exists']:
+                _meta = meta_list[i]
+                if not _meta['prev_bev_exists']:
                     prev_bev = None
                 # img_feats = self.extract_feat(img=img, img_metas=img_metas)
                 img_feats = [each_scale[:, i] for each_scale in img_feats_list]
                 prev_bev = self.pts_bbox_head(
-                    img_feats, img_metas, prev_bev, only_bev=True)
+                    img_feats, [_meta], prev_bev, only_bev=True)
             self.train()
             return prev_bev
 
@@ -209,18 +219,9 @@ class BEVFormer(MVXTwoStageDetector):
     def loss(self,
              inputs=None,
              data_samples=None,
-             mode=None,
-             points=None,
-             img_metas=None,
-             gt_bboxes_3d=None,
-             gt_labels_3d=None,
-             gt_labels=None,
-             gt_bboxes=None,
-             img=None,
-             proposals=None,
-             gt_bboxes_ignore=None,
-             img_depth=None,
-             img_mask=None):
+             prev_samples=None,
+             prev_metas=None,
+             prev_images=None):
         """Forward training function.
         Args:
             points (list[torch.Tensor], optional): Points of each sample.
@@ -245,21 +246,53 @@ class BEVFormer(MVXTwoStageDetector):
             dict: Losses of different branches.
         """
 
-        len_queue = img.size(1)
-        prev_img = img[:, :-1, ...]
-        img = img[:, -1, ...]
+        # Get meta information
+        input_metas = [item.metainfo for item in data_samples]
+        input_metas = self.add_lidar2img(input_metas)
 
-        prev_img_metas = copy.deepcopy(img_metas)
-        prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)
+        # prev_meta_list = []
+        # for prev_id in range(len(prev_images)):
+        #     _metas = copy.deepcopy(prev_metas[prev_id])
+        #     # _metas = self.add_lidar2img(_metas)
+        #     # _metas = self.add_motion_info(_metas)
+        #     prev_meta_list.append(_metas)
+        # prev_meta_list = self.add_lidar2img(prev_meta_list)
+        # prev_bev = self.obtain_history_bev(prev_images, prev_meta_list)
+        prev_bev = self.obtain_history_bev(prev_samples)
 
-        img_metas = [each[len_queue - 1] for each in img_metas]
-        if not img_metas[0]['prev_bev_exists']:
+        if not input_metas[0]['prev_bev_exists']:
             prev_bev = None
-        img_feats = self.extract_feat(img=img, img_metas=img_metas)
+        img_feats = self.extract_feat(batch_inputs_dict=inputs, batch_input_metas=input_metas)
         losses = dict()
-        losses_pts = self.forward_pts_train(img_feats, gt_bboxes_3d,
-                                            gt_labels_3d, img_metas,
-                                            gt_bboxes_ignore, prev_bev)
+
+        batch_gt_instances_3d = [ds.gt_instances_3d for ds in data_samples]
+        gt_bboxes_3d = [gt.bboxes_3d for gt in batch_gt_instances_3d]
+        gt_labels_3d = [gt.labels_3d for gt in batch_gt_instances_3d]
+        gt_bboxes_ignore = None
+        losses_pts = self.forward_pts_train(
+            pts_feats=img_feats,
+            img_metas=input_metas,
+            gt_bboxes_3d=gt_bboxes_3d,
+            gt_labels_3d=gt_labels_3d,
+            gt_bboxes_ignore=gt_bboxes_ignore,
+            prev_bev=prev_bev
+        )
+
+        # len_queue = img.size(1)
+        # prev_img = img[:, :-1, ...]
+        # img = img[:, -1, ...]
+
+        # prev_img_metas = copy.deepcopy(img_metas)
+        # prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)
+        #
+        # img_metas = [each[len_queue - 1] for each in img_metas]
+        # if not img_metas[0]['prev_bev_exists']:
+        #     prev_bev = None
+        # img_feats = self.extract_feat(img=img, img_metas=img_metas)
+        # losses = dict()
+        # losses_pts = self.forward_pts_train(img_feats, gt_bboxes_3d,
+        #                                     gt_labels_3d, img_metas,
+        #                                     gt_bboxes_ignore, prev_bev)
 
         losses.update(losses_pts)
         return losses

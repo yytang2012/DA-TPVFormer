@@ -8,7 +8,7 @@ from mmengine import print_log
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
 from mmdet3d.datasets import NuScenesDataset
 from mmdet3d.registry import DATASETS
-from mmdet3d.structures import LiDARInstance3DBoxes
+from mmdet3d.structures import LiDARInstance3DBoxes, Det3DDataSample
 from nuscenes.eval.common.utils import quaternion_yaw, Quaternion
 
 
@@ -130,37 +130,56 @@ class NuScenesTempralDataset(NuScenesDataset):
     def union2one(self, queue: List[Dict]) -> Dict:
         """Unite temporal frames into one single data dict."""
         result_dict = queue[-1]
-        metas_map = {}
+        metas_list = []
         prev_scene_token = None
         prev_pos = None
         prev_angle = None
 
         # Collect image tensors
-        imgs_list = [each['inputs']['img'] for each in queue]
-        result_dict['inputs'] = torch.stack(imgs_list)
+        # imgs_list = [each['inputs']['img'] for each in queue]
+        # result_dict['inputs'] = torch.stack(imgs_list)
+        # result_dict['inputs'] = queue[-1]['inputs']
+        prev_images = [each['inputs']['img'] for each in queue[:-1]]
+        # result_dict['prev_images'] = prev_images
 
         # Process each frame's meta information
         for i, each in enumerate(queue):
-            metas_map[i] = each['data_samples'].metainfo
+            _meta = each['data_samples'].metainfo
 
             # Handle scene transitions and update temporal information
-            if metas_map[i]['scene_token'] != prev_scene_token:
-                metas_map[i]['prev_bev_exists'] = False
-                prev_scene_token = metas_map[i]['scene_token']
-                prev_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
-                prev_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
-                metas_map[i]['can_bus'][:3] = 0
-                metas_map[i]['can_bus'][-1] = 0
+            if _meta['scene_token'] != prev_scene_token:
+                _meta['prev_bev_exists'] = False
+                prev_scene_token = _meta['scene_token']
+                prev_pos = copy.deepcopy(_meta['can_bus'][:3])
+                prev_angle = copy.deepcopy(_meta['can_bus'][-1])
+                _meta['can_bus'][:3] = 0
+                _meta['can_bus'][-1] = 0
             else:
-                metas_map[i]['prev_bev_exists'] = True
-                tmp_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
-                tmp_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
-                metas_map[i]['can_bus'][:3] -= prev_pos
-                metas_map[i]['can_bus'][-1] -= prev_angle
+                _meta['prev_bev_exists'] = True
+                tmp_pos = copy.deepcopy(_meta['can_bus'][:3])
+                tmp_angle = copy.deepcopy(_meta['can_bus'][-1])
+                _meta['can_bus'][:3] -= prev_pos
+                _meta['can_bus'][-1] -= prev_angle
                 prev_pos = copy.deepcopy(tmp_pos)
                 prev_angle = copy.deepcopy(tmp_angle)
+            metas_list.append(_meta)
 
-        result_dict['data_samples'].metainfo.update(metas_map)
+        # result_dict['data_samples'].update({
+        #     "metainfo": metas_map
+        # })
+        # result_dict['data_samples'].metainfo.update({"metas_map": metas_map})
+        # result_dict['data_samples'].metainfo.update(metas_map)
+
+        # 创建包含前序帧的 Det3DDataSample
+        prev_samples = []
+        for img, meta in zip(prev_images, metas_list[:len(queue) - 1]):
+            prev_sample = Det3DDataSample(metainfo=meta)
+            prev_sample.img = img
+            # prev_sample.metainfo = meta
+            prev_samples.append(prev_sample)
+
+        # 将前序帧信息添加到结果字典中
+        result_dict["prev_samples"] = prev_samples
         return result_dict
 
     def __getitem__(self, idx: int) -> Dict:
