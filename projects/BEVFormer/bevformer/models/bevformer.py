@@ -145,15 +145,20 @@ class BEVFormer(MVXTwoStageDetector):
         return img_feats
 
     def forward_pts_train(self,
-                          pts_feats,
+                          # pts_feats,
+                          # img_metas,
+                          # gt_bboxes_3d,
+                          # gt_labels_3d,
+                          # gt_bboxes_ignore=None,
+                          # prev_bev=None,
+                          img_feats,
                           img_metas,
-                          gt_bboxes_3d,
-                          gt_labels_3d,
-                          gt_bboxes_ignore=None,
-                          prev_bev=None):
+                          data_samples,
+                          prev_bev=None
+                          ):
         """Forward function'
         Args:
-            pts_feats (list[torch.Tensor]): Features of point cloud branch
+            img_feats (list[torch.Tensor]): Features of point cloud branch
             gt_bboxes_3d (list[:obj:`BaseInstance3DBoxes`]): Ground truth
                 boxes for each sample.
             gt_labels_3d (list[torch.Tensor]): Ground truth labels for
@@ -166,11 +171,18 @@ class BEVFormer(MVXTwoStageDetector):
             dict: Losses of each branch.
         """
 
-        outs = self.pts_bbox_head(
-            pts_feats, img_metas, prev_bev)
-        loss_inputs = [gt_bboxes_3d, gt_labels_3d, outs]
-        losses = self.pts_bbox_head.loss(*loss_inputs, img_metas=img_metas)
-        return losses
+        outs = self.pts_bbox_head(img_feats, img_metas, prev_bev)
+
+        batch_gt_instances_3d = [
+            item.gt_instances_3d for item in data_samples
+        ]
+        loss_inputs = [batch_gt_instances_3d, outs]
+        losses_pts = self.pts_bbox_head.loss_by_feat(*loss_inputs)
+
+        return losses_pts
+        # loss_inputs = [gt_bboxes_3d, gt_labels_3d, outs]
+        # losses = self.pts_bbox_head.loss(*loss_inputs, img_metas=img_metas)
+        # return losses
 
     def forward_dummy(self, img):
         dummy_metas = None
@@ -222,6 +234,9 @@ class BEVFormer(MVXTwoStageDetector):
              ):
         """Forward training function.
         Args:
+            prev_samples:
+            data_samples:
+            inputs:
             points (list[torch.Tensor], optional): Points of each sample.
                 Defaults to None.
             img_metas (list[dict], optional): Meta information of each sample.
@@ -247,6 +262,8 @@ class BEVFormer(MVXTwoStageDetector):
         # Get meta information
         input_metas = [item.metainfo for item in data_samples]
         input_metas = self.add_lidar2img(input_metas)
+        # Add motion and temporal information
+        input_metas = self.add_motion_info(input_metas)
 
         # prev_meta_list = []
         # for prev_id in range(len(prev_images)):
@@ -261,20 +278,16 @@ class BEVFormer(MVXTwoStageDetector):
         if not input_metas[0]['prev_bev_exists']:
             prev_bev = None
         img_feats = self.extract_feat(batch_inputs_dict=inputs, batch_input_metas=input_metas)
-        losses = dict()
 
-        batch_gt_instances_3d = [ds.gt_instances_3d for ds in data_samples]
-        gt_bboxes_3d = [gt.bboxes_3d for gt in batch_gt_instances_3d]
-        gt_labels_3d = [gt.labels_3d for gt in batch_gt_instances_3d]
-        gt_bboxes_ignore = None
+
+        # losses = dict()
         losses_pts = self.forward_pts_train(
-            pts_feats=img_feats,
+            img_feats=img_feats,
             img_metas=input_metas,
-            gt_bboxes_3d=gt_bboxes_3d,
-            gt_labels_3d=gt_labels_3d,
-            gt_bboxes_ignore=gt_bboxes_ignore,
+            data_samples=data_samples,
             prev_bev=prev_bev
         )
+        return losses_pts
 
         # len_queue = img.size(1)
         # prev_img = img[:, :-1, ...]
@@ -292,8 +305,8 @@ class BEVFormer(MVXTwoStageDetector):
         #                                     gt_labels_3d, img_metas,
         #                                     gt_bboxes_ignore, prev_bev)
 
-        losses.update(losses_pts)
-        return losses
+        # losses.update(losses_pts)
+        # return losses
 
     # def predict(self, img_metas, img=None, **kwargs):
     def predict(self, inputs=None, data_samples=None, **kwargs):

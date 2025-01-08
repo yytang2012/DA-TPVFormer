@@ -76,7 +76,7 @@ model = dict(
         norm_cfg=dict(type='BN2d', requires_grad=False),
         norm_eval=True,
         style='caffe',
-        with_cp=True,
+        with_cp=False,
         dcn=dict(type='DCNv2', deform_groups=1, fallback_on_stride=False),
         stage_with_dcn=(False, False, True, True)),
     img_neck=dict(
@@ -380,3 +380,4 @@ visualizer = dict(
     name='visualizer')
 
 load_from = 'checkpoints/r101_dcn_fcos3d_pretrain.pth'
+find_unused_parameters = True
