@@ -64,6 +64,8 @@ queue_length = 3  # each sequence contains `queue_length` frames.
 
 model = dict(
     type='BEVFormer',
+    # data_preprocessor=dict(
+    #     type='Det3DDataPreprocessor', **img_norm_cfg, pad_size_divisor=32),
     use_grid_mask=True,
     video_test_mode=True,
     rescale=True,
@@ -236,30 +238,38 @@ train_pipeline = [
 #             # dict(type='Collect3D', keys=['img'])
 #         ])
 # ]
-val_pipeline = [
+test_transforms = [
+    dict(
+        type='RandomResize3D',
+        scale=(1600, 900),
+        ratio_range=(0.8, 0.8),
+        keep_ratio=True)
+]
+test_pipeline = [
     dict(
         type='LoadMultiViewImageFromFiles',
         to_float32=True,
-        backend_args=None),  # Add backend_args for compatibility
-    dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-    dict(
-        type='MultiScaleFlipAug3D',
-        img_scale=(1600, 900),
-        pts_scale_ratio=1,
-        flip=False,
-        transforms=[
-            dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
-            dict(type='PadMultiViewImage', size_divisor=32),
-            # dict(
-            #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D
-            #     keys=['img'])
-        ]),
+        num_views=6,
+        backend_args=backend_args),
+    dict(type='NormalizeMultiviewImage', **img_norm_cfg),  # TODO: move to  data_preprocessor
+    dict(type='MultiViewWrapper', transforms=test_transforms),
+    # dict(
+    #     type='MultiScaleFlipAug3D',
+    #     img_scale=(1600, 900),
+    #     pts_scale_ratio=1,
+    #     flip=False,
+    #     transforms=[
+    #         dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
+    #         # dict(type='PadMultiViewImage', size_divisor=32),
+    #         # dict(
+    #         #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D
+    #         #     keys=['img'])
+    #     ]),
+    # dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+    # dict(type='ObjectNameFilter', classes=class_names),
     dict(
         type='Pack3DDetInputs',
-        keys=[
-            'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
-            'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
-        ],
+        keys=['img'],
         meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
                    'depth2img', 'cam2img', 'pad_shape',
                    'scale_factor', 'flip', 'pcd_horizontal_flip',
@@ -278,7 +288,7 @@ val_pipeline = [
 
 ]
 
-test_pipeline = val_pipeline
+val_pipeline = test_pipeline
 
 train_dataloader = dict(
     batch_size=1,
