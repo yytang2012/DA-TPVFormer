@@ -127,20 +127,18 @@ class NuScenesTempralDataset(NuScenesDataset):
 
         return self.union2one(queue)
 
-    def union2one(self, queue: List[Dict]) -> Dict:
+    def union2one(self, queue: List[Dict]) -> List[dict]:
         """Unite temporal frames into one single data dict."""
-        result_dict = queue[-1]
-        metas_list = []
+        # result_dict = queue[-1]
+        # metas_dict = {}
         prev_scene_token = None
         prev_pos = None
         prev_angle = None
 
         # Collect image tensors
-        # imgs_list = [each['inputs']['img'] for each in queue]
-        # result_dict['inputs'] = torch.stack(imgs_list)
-        # result_dict['inputs'] = queue[-1]['inputs']
-        prev_images = [each['inputs']['img'] for each in queue[:-1]]
-        # result_dict['prev_images'] = prev_images
+        # image_list = [each['inputs']['img'] for each in queue]
+        # result_dict['inputs'] = torch.stack(image_list)
+        # prev_images = [each['inputs']['img'] for each in queue[:-1]]
 
         # Process each frame's meta information
         for i, each in enumerate(queue):
@@ -162,8 +160,10 @@ class NuScenesTempralDataset(NuScenesDataset):
                 _meta['can_bus'][-1] -= prev_angle
                 prev_pos = copy.deepcopy(tmp_pos)
                 prev_angle = copy.deepcopy(tmp_angle)
-            metas_list.append(_meta)
+            # metas_dict[f"{i}"] = _meta
             each['data_samples'].set_metainfo(_meta)
+        # result_dict['data_samples'].set_metainfo(metas_dict)
+        return queue
 
         # result_dict['data_samples'].update({
         #     "metainfo": metas_map
@@ -171,17 +171,17 @@ class NuScenesTempralDataset(NuScenesDataset):
         # result_dict['data_samples'].metainfo.update({"metas_map": metas_map})
         # result_dict['data_samples'].metainfo.update(metas_map)
 
-        # 创建包含前序帧的 Det3DDataSample
-        prev_samples = []
-        for img, meta in zip(prev_images, metas_list[:len(queue) - 1]):
-            prev_sample = Det3DDataSample(metainfo=meta)
-            prev_sample.img = img
-            # prev_sample.metainfo = meta
-            prev_samples.append(prev_sample)
-
-        # 将前序帧信息添加到结果字典中
-        result_dict["prev_samples"] = prev_samples
-        return result_dict
+        # # 创建包含前序帧的 Det3DDataSample
+        # prev_samples = []
+        # for img, meta in zip(prev_images, metas_list[:len(queue) - 1]):
+        #     prev_sample = Det3DDataSample(metainfo=meta)
+        #     prev_sample.img = img
+        #     # prev_sample.metainfo = meta
+        #     prev_samples.append(prev_sample)
+        #
+        # # 将前序帧信息添加到结果字典中
+        # result_dict["prev_samples"] = prev_samples
+        # return result_dict
 
     def __getitem__(self, idx: int) -> Dict:
         """Get item from dataset."""

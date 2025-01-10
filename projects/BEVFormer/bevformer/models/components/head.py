@@ -704,7 +704,7 @@ class BEVFormerHead(DETRHead):
         #     num_dec_layer += 1
         # return loss_dict
 
-    def get_bboxes(self, preds_dicts, img_metas, rescale=False):
+    def predict_by_feat(self, preds_dicts, img_metas, rescale=False):
         """Generate bboxes from bbox head predictions.
         Args:
             preds_dicts (tuple[list[dict]]): Prediction results.
@@ -714,22 +714,19 @@ class BEVFormerHead(DETRHead):
         """
 
         preds_dicts = self.bbox_coder.decode(preds_dicts)
-
-        num_samples = len(preds_dicts)
+        num_samples = len(preds_dicts)  # batch size
         ret_list = []
         for i in range(num_samples):
+            results = InstanceData()
             preds = preds_dicts[i]
             bboxes = preds['bboxes']
-
             bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
+            bboxes = img_metas[i]['box_type_3d'](bboxes, self.code_size - 1)
 
-            code_size = bboxes.shape[-1]
-            bboxes = img_metas[i]['box_type_3d'](bboxes, code_size)
-            scores = preds['scores']
-            labels = preds['labels']
-
-            ret_list.append([bboxes, scores, labels])
-
+            results.bboxes_3d = bboxes
+            results.scores_3d = preds['scores']
+            results.labels_3d = preds['labels']
+            ret_list.append(results)
         return ret_list
 
 # 

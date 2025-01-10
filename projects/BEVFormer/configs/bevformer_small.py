@@ -13,7 +13,7 @@ point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 voxel_size = [0.2, 0.2, 8]
 
 img_norm_cfg = dict(
-    mean=[103.530, 116.280, 123.675], std=[1.0, 1.0, 1.0], to_rgb=False)
+    mean=[103.530, 116.280, 123.675], std=[1.0, 1.0, 1.0], bgr_to_rgb=False)
 
 # dataset_type = 'CustomNuScenesDataset'
 # data_root = 'data/nuscenes/'
@@ -64,8 +64,8 @@ queue_length = 3  # each sequence contains `queue_length` frames.
 
 model = dict(
     type='BEVFormer',
-    # data_preprocessor=dict(
-    #     type='Det3DDataPreprocessor', **img_norm_cfg, pad_size_divisor=32),
+    data_preprocessor=dict(
+        type='Det3DDataPreprocessor', **img_norm_cfg, pad_size_divisor=32),
     use_grid_mask=True,
     video_test_mode=True,
     rescale=True,
@@ -188,24 +188,70 @@ model = dict(
                 iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
                 pc_range=point_cloud_range))))
 
+# backend_args = None
+# train_pipeline = [
+#     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+#     dict(type='PhotoMetricDistortionMultiViewImage'),
+#     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_attr_label=False),
+#     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+#     dict(type='ObjectNameFilter', classes=class_names),
+#     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
+#     dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
+#     dict(type='PadMultiViewImage', size_divisor=32),
+#     # dict(type='DefaultFormatBundle3D', class_names=class_names),
+#     # dict(type='Collect3D', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
+#     dict(
+#         type='Pack3DDetInputs',
+#         keys=[
+#             'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
+#             'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
+#         ],
+#         meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
+#                    'depth2img', 'cam2img', 'pad_shape',
+#                    'scale_factor', 'flip', 'pcd_horizontal_flip',
+#                    'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
+#                    'img_norm_cfg', 'num_pts_feats', 'pcd_trans',
+#                    'sample_idx', 'pcd_scale_factor', 'pcd_rotation',
+#                    'pcd_rotation_angle', 'lidar_path',
+#                    'transformation_3d_flow', 'trans_mat',
+#                    'affine_aug', 'sweep_img_metas', 'ori_cam2img',
+#                    'cam2global', 'crop_offset', 'img_crop_offset',
+#                    'resize_img_shape', 'lidar2cam', 'ori_lidar2img',
+#                    'num_ref_frames', 'num_views', 'ego2global',
+#                    'axis_align_matrix',
+#                    'prev_idx', 'next_idx', 'scene_token', 'can_bus')
+#     )
+# ]
+
+
+test_transforms = [
+    dict(
+        type='RandomResize3D',
+        scale=(1600, 900),
+        ratio_range=(0.8, 0.8),
+        keep_ratio=True)
+]
+
+train_transforms = [dict(type='PhotoMetricDistortion3D')] + test_transforms
+
 backend_args = None
 train_pipeline = [
-    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
-    dict(type='PhotoMetricDistortionMultiViewImage'),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_attr_label=False),
+    dict(
+        type='LoadMultiViewImageFromFiles',
+        to_float32=True,
+        num_views=6,
+        backend_args=backend_args),
+    dict(
+        type='LoadAnnotations3D',
+        with_bbox_3d=True,
+        with_label_3d=True,
+        with_attr_label=False),
+    dict(type='MultiViewWrapper', transforms=train_transforms),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-    dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
-    dict(type='PadMultiViewImage', size_divisor=32),
-    # dict(type='DefaultFormatBundle3D', class_names=class_names),
-    # dict(type='Collect3D', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
     dict(
         type='Pack3DDetInputs',
-        keys=[
-            'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
-            'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
-        ],
+        keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'],
         meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
                    'depth2img', 'cam2img', 'pad_shape',
                    'scale_factor', 'flip', 'pcd_horizontal_flip',
@@ -238,20 +284,13 @@ train_pipeline = [
 #             # dict(type='Collect3D', keys=['img'])
 #         ])
 # ]
-test_transforms = [
-    dict(
-        type='RandomResize3D',
-        scale=(1600, 900),
-        ratio_range=(0.8, 0.8),
-        keep_ratio=True)
-]
 test_pipeline = [
     dict(
         type='LoadMultiViewImageFromFiles',
         to_float32=True,
         num_views=6,
         backend_args=backend_args),
-    dict(type='NormalizeMultiviewImage', **img_norm_cfg),  # TODO: move to  data_preprocessor
+    # dict(type='NormalizeMultiviewImage', **img_norm_cfg),  # TODO: move to  data_preprocessor
     dict(type='MultiViewWrapper', transforms=test_transforms),
     # dict(
     #     type='MultiScaleFlipAug3D',
