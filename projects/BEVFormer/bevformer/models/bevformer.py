@@ -118,13 +118,6 @@ class BEVFormer(MVXTwoStageDetector):
 
         return img_feats_reshaped
 
-    # def extract_feat(self, img, img_metas=None, len_queue=None):
-    #     """Extract features from images and points."""
-    #
-    #     img_feats = self.extract_img_feat(img, img_metas, len_queue=len_queue)
-    #
-    #     return img_feats
-
     def extract_feat(self,
                      batch_inputs_dict: Dict[str, Optional[Tensor]],
                      batch_input_metas: List[dict]) -> List[Tensor]:
@@ -138,39 +131,16 @@ class BEVFormer(MVXTwoStageDetector):
         Returns:
             list[tensor]: Multi-level image features.
         """
-        # img = batch_inputs_dict['img']
-        # if isinstance(img, list):
-        #     img = torch.stack(img, dim=0)
-        img = batch_inputs_dict['imgs']
-        img_feats = self.extract_img_feat(img, batch_input_metas)
+        imgs = batch_inputs_dict.get('imgs', None)
+        img_feats = self.extract_img_feat(imgs, batch_input_metas)
         return img_feats
 
     def forward_pts_train(self,
-                          # pts_feats,
-                          # img_metas,
-                          # gt_bboxes_3d,
-                          # gt_labels_3d,
-                          # gt_bboxes_ignore=None,
-                          # prev_bev=None,
                           img_feats,
                           img_metas,
                           data_samples,
                           prev_bev=None
                           ):
-        """Forward function'
-        Args:
-            img_feats (list[torch.Tensor]): Features of point cloud branch
-            gt_bboxes_3d (list[:obj:`BaseInstance3DBoxes`]): Ground truth
-                boxes for each sample.
-            gt_labels_3d (list[torch.Tensor]): Ground truth labels for
-                boxes of each sampole
-            img_metas (list[dict]): Meta information of samples.
-            gt_bboxes_ignore (list[torch.Tensor], optional): Ground truth
-                boxes to be ignored. Defaults to None.
-            prev_bev (torch.Tensor, optional): BEV features of previous frame.
-        Returns:
-            dict: Losses of each branch.
-        """
 
         outs = self.pts_bbox_head(img_feats, img_metas, prev_bev)
 
@@ -181,9 +151,6 @@ class BEVFormer(MVXTwoStageDetector):
         losses_pts = self.pts_bbox_head.loss_by_feat(*loss_inputs)
 
         return losses_pts
-        # loss_inputs = [gt_bboxes_3d, gt_labels_3d, outs]
-        # losses = self.pts_bbox_head.loss(*loss_inputs, img_metas=img_metas)
-        # return losses
 
     def forward_dummy(self, img):
         dummy_metas = None
@@ -193,42 +160,30 @@ class BEVFormer(MVXTwoStageDetector):
         """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
         """
         self.eval()
-        image_list = [_[0].img for _ in prev_samples]
-        meta_list = [_[0].metainfo for _ in prev_samples]
+        image_list = [_.get('inputs').get('imgs') for _ in prev_samples]
+        meta_list = [_.get('data_samples')[0].metainfo for _ in prev_samples]
         self.add_lidar2img(meta_list)
-        images_queue = torch.stack(image_list)
-        images_queue = images_queue.unsqueeze(0)
+
+        # [bs, N, C, H, W] -> [bs, 1, N, C, H, W]
+        expanded_images = [img.unsqueeze(1) for img in image_list]
+
+        # The resulting shape becomes [bs, Len_queue, N, C, H, W]
+        images = torch.cat(expanded_images, dim=1)
 
         with torch.no_grad():
             prev_bev = None
-            bs, len_queue, num_cams, C, H, W = images_queue.shape
-            images_queue = images_queue.reshape(bs * len_queue, num_cams, C, H, W)
-            img_feats_list = self.extract_img_feat(img=images_queue, len_queue=len_queue)
+            bs, len_queue, num_cams, C, H, W = images.shape
+            images = images.reshape(bs * len_queue, num_cams, C, H, W)
+            img_feats_list = self.extract_img_feat(img=images, len_queue=len_queue)
             for i in range(len_queue):
                 _meta = meta_list[i]
                 if not _meta['prev_bev_exists']:
                     prev_bev = None
-                # img_feats = self.extract_feat(img=img, img_metas=img_metas)
                 img_feats = [each_scale[:, i] for each_scale in img_feats_list]
                 prev_bev = self.pts_bbox_head(
                     img_feats, [_meta], prev_bev, only_bev=True)
             self.train()
             return prev_bev
-
-    # def loss(self,
-    #          points=None,
-    #          img_metas=None,
-    #          gt_bboxes_3d=None,
-    #          gt_labels_3d=None,
-    #          gt_labels=None,
-    #          gt_bboxes=None,
-    #          img=None,
-    #          proposals=None,
-    #          gt_bboxes_ignore=None,
-    #          img_depth=None,
-    #          img_mask=None,
-    #          ):
-    #
 
     def forward(self, *args, mode: str = 'tensor', **kwargs):
         # return super.forward(*args, **kwargs)
@@ -240,61 +195,21 @@ class BEVFormer(MVXTwoStageDetector):
             raise RuntimeError(f'Invalid mode "{mode}". '
                                'Only supports loss, predict and tensor mode')
 
-
-    def loss(self,
-             data_list
-             # inputs=None,
-             # data_samples=None,
-             # prev_samples=None
-             ):
-        """Forward training function.
-        Args:
-            prev_samples:
-            data_samples:
-            inputs:
-            points (list[torch.Tensor], optional): Points of each sample.
-                Defaults to None.
-            img_metas (list[dict], optional): Meta information of each sample.
-                Defaults to None.
-            gt_bboxes_3d (list[:obj:`BaseInstance3DBoxes`], optional):
-                Ground truth 3D boxes. Defaults to None.
-            gt_labels_3d (list[torch.Tensor], optional): Ground truth labels
-                of 3D boxes. Defaults to None.
-            gt_labels (list[torch.Tensor], optional): Ground truth labels
-                of 2D boxes in images. Defaults to None.
-            gt_bboxes (list[torch.Tensor], optional): Ground truth 2D boxes in
-                images. Defaults to None.
-            img (torch.Tensor optional): Images of each sample with shape
-                (N, C, H, W). Defaults to None.
-            proposals ([list[torch.Tensor], optional): Predicted proposals
-                used for training Fast RCNN. Defaults to None.
-            gt_bboxes_ignore (list[torch.Tensor], optional): Ground truth
-                2D boxes in images to be ignored. Defaults to None.
-        Returns:
-            dict: Losses of different branches.
-        """
-
-        # Get meta information
+    def loss(self, data_list):
+        # Process the current sample
+        current_sample = data_list[-1]
+        inputs = current_sample.get("inputs")
+        data_samples = current_sample.get("data_samples")
         input_metas = [item.metainfo for item in data_samples]
         input_metas = self.add_lidar2img(input_metas)
-        # Add motion and temporal information
-        input_metas = self.add_motion_info(input_metas)
-
-        # prev_meta_list = []
-        # for prev_id in range(len(prev_images)):
-        #     _metas = copy.deepcopy(prev_metas[prev_id])
-        #     # _metas = self.add_lidar2img(_metas)
-        #     # _metas = self.add_motion_info(_metas)
-        #     prev_meta_list.append(_metas)
-        # prev_meta_list = self.add_lidar2img(prev_meta_list)
-        # prev_bev = self.obtain_history_bev(prev_images, prev_meta_list)
-        prev_bev = self.obtain_history_bev(prev_samples)
-
         if not input_metas[0]['prev_bev_exists']:
             prev_bev = None
+        else:
+            prev_samples = data_list[:-1]
+            prev_bev = self.obtain_history_bev(prev_samples)
+
         img_feats = self.extract_feat(batch_inputs_dict=inputs, batch_input_metas=input_metas)
 
-        # losses = dict()
         losses_pts = self.forward_pts_train(
             img_feats=img_feats,
             img_metas=input_metas,
@@ -303,26 +218,6 @@ class BEVFormer(MVXTwoStageDetector):
         )
         return losses_pts
 
-        # len_queue = img.size(1)
-        # prev_img = img[:, :-1, ...]
-        # img = img[:, -1, ...]
-
-        # prev_img_metas = copy.deepcopy(img_metas)
-        # prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)
-        #
-        # img_metas = [each[len_queue - 1] for each in img_metas]
-        # if not img_metas[0]['prev_bev_exists']:
-        #     prev_bev = None
-        # img_feats = self.extract_feat(img=img, img_metas=img_metas)
-        # losses = dict()
-        # losses_pts = self.forward_pts_train(img_feats, gt_bboxes_3d,
-        #                                     gt_labels_3d, img_metas,
-        #                                     gt_bboxes_ignore, prev_bev)
-
-        # losses.update(losses_pts)
-        # return losses
-
-    # def predict(self, img_metas, img=None, **kwargs):
     def predict(self, inputs=None, data_samples=None, **kwargs):
         """Forward of testing.
 
@@ -373,7 +268,7 @@ class BEVFormer(MVXTwoStageDetector):
         return outs['bev_embed'], results_list_3d
 
     def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None):
-        """Test function without augmentaiton."""
+        """Test function without augmentation."""
         img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
 
         bbox_list = [dict() for i in range(len(batch_input_metas))]
