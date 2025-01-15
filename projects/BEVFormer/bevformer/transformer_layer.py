@@ -47,16 +47,16 @@ class BEVFormerBaseTransformerLayer(BaseModule):
             Configs for `self_attention` or `cross_attention` modules,
             The order of the configs in the list should be consistent with
             corresponding attentions in operation_order.
-            If it is a dict, all of the attention modules in operation_order
+            If it is a dict, all the attention modules in operation_order
             will be built with this config. Default: None.
         ffn_cfgs (list[`mmcv.ConfigDict`] | obj:`mmcv.ConfigDict` | None )):
             Configs for FFN, The order of the configs in the list should be
             consistent with corresponding ffn in operation_order.
-            If it is a dict, all of the attention modules in operation_order
+            If it is a dict, all the attention modules in operation_order
             will be built with this config.
         operation_order (tuple[str]): The execution order of operation
             in transformer. Such as ('self_attn', 'norm', 'ffn', 'norm').
-            Support `prenorm` when you specifying first element as `norm`.
+            Support `prenorm` when you're specifying first element as `norm`.
             Default：None.
         norm_cfg (dict): Config dict for normalization layer.
             Default: dict(type='LN').
@@ -102,9 +102,8 @@ class BEVFormerBaseTransformerLayer(BaseModule):
 
         self.batch_first = batch_first
 
-        assert set(operation_order) & set(
-            ['self_attn', 'norm', 'ffn', 'cross_attn']) == \
-            set(operation_order), f'The operation_order of' \
+        assert set(operation_order) & {'self_attn', 'norm', 'ffn', 'cross_attn'} == \
+               set(operation_order), f'The operation_order of' \
             f' {self.__class__.__name__} should ' \
             f'contains all four operation type ' \
             f"{['self_attn', 'norm', 'ffn', 'cross_attn']}"

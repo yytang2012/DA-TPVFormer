@@ -9,9 +9,6 @@ import torch
 import copy
 import warnings
 from mmcv.cnn.bricks.transformer import TransformerLayerSequence
-# from mmcv.runner import force_fp32, auto_fp16
-# from mmcv.utils import TORCH_VERSION, digit_version
-# from .custom_base_transformer_layer import MyCustomBaseTransformerLayer
 from mmcv.utils import ext_loader
 from mmengine import digit_version
 from mmengine.utils.dl_utils import TORCH_VERSION
@@ -169,7 +166,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
         Args:
             bev_query (Tensor): Input BEV query with shape
                 `(num_query, bs, embed_dims)`.
-            key & value (Tensor): Input multi-cameta features with shape
+            key & value (Tensor): Input multi-camera features with shape
                 (num_cam, num_value, bs, embed_dims)
             reference_points (Tensor): The reference
                 points of offset. has shape
@@ -249,7 +246,7 @@ class BEVFormerLayer(BEVFormerBaseTransformerLayer):
         attn_cfgs (list[`mmcv.ConfigDict`] | list[dict] | dict )):
             Configs for self_attention or cross_attention, the order
             should be consistent with it in `operation_order`. If it is
-            a dict, it would be expand to the number of attention in
+            a dict, it would be expanded to the number of attention in
             `operation_order`.
         feedforward_channels (int): The hidden dimension for FFNs.
         ffn_dropout (float): Probability of an element to be zeroed
@@ -284,8 +281,7 @@ class BEVFormerLayer(BEVFormerBaseTransformerLayer):
             **kwargs)
         self.fp16_enabled = False
         assert len(operation_order) == 6
-        assert set(operation_order) == set(
-            ['self_attn', 'norm', 'cross_attn', 'ffn'])
+        assert set(operation_order) == {'self_attn', 'norm', 'cross_attn', 'ffn'}
 
     def forward(self,
                 query,
@@ -381,7 +377,7 @@ class BEVFormerLayer(BEVFormerBaseTransformerLayer):
                 query = self.norms[norm_index](query)
                 norm_index += 1
 
-            # spaital cross attention
+            # spatial cross attention
             elif layer == 'cross_attn':
                 query = self.attentions[attn_index](
                     query,
@@ -438,8 +434,7 @@ class MM_BEVFormerLayer(BEVFormerBaseTransformerLayer):
             **kwargs)
         self.fp16_enabled = False
         assert len(operation_order) == 6
-        assert set(operation_order) == set(
-            ['self_attn', 'norm', 'cross_attn', 'ffn'])
+        assert set(operation_order) == {'self_attn', 'norm', 'cross_attn', 'ffn'}
         self.cross_model_weights = torch.nn.Parameter(torch.tensor(0.5), requires_grad=True)
         if lidar_cross_attn_layer:
             self.lidar_cross_attn_layer = build_attention(lidar_cross_attn_layer)

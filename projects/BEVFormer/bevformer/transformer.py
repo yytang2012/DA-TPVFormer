@@ -18,22 +18,6 @@ from projects.BEVFormer.bevformer.spatial_cross_attention import MSDeformableAtt
 from projects.BEVFormer.bevformer.temporal_self_attention import TemporalSelfAttention
 
 
-# from mmcv.cnn import xavier_init
-# from mmcv.cnn.bricks.transformer import build_transformer_layer_sequence
-# from mmcv.runner.base_module import BaseModule
-#
-# from mmdet.models.utils.builder import TRANSFORMER
-# from torch.nn.init import normal_
-# from projects.mmdet3d_plugin.models.utils.visual import save_tensor
-# from mmcv.runner.base_module import BaseModule
-# from torchvision.transforms.functional import rotate
-# from .temporal_self_attention import TemporalSelfAttention
-# from .spatial_cross_attention import MSDeformableAttention3D
-# from .decoder import CustomMSDeformableAttention
-# from projects.mmdet3d_plugin.models.utils.bricks import run_time
-# from mmcv.runner import force_fp32, auto_fp16
-
-
 @MODELS.register_module()
 class PerceptionTransformer(BaseModule):
     """Implements the Detr3D transformer.
@@ -131,9 +115,9 @@ class PerceptionTransformer(BaseModule):
 
         # obtain rotation angle and shift with ego motion
         delta_x = np.array([each['can_bus'][0]
-                           for each in kwargs['img_metas']])
+                            for each in kwargs['img_metas']])
         delta_y = np.array([each['can_bus'][1]
-                           for each in kwargs['img_metas']])
+                            for each in kwargs['img_metas']])
         ego_angle = np.array(
             [each['can_bus'][-2] / np.pi * 180 for each in kwargs['img_metas']])
         grid_length_y = grid_length[0]
@@ -142,9 +126,9 @@ class PerceptionTransformer(BaseModule):
         translation_angle = np.arctan2(delta_y, delta_x) / np.pi * 180
         bev_angle = ego_angle - translation_angle
         shift_y = translation_length * \
-            np.cos(bev_angle / 180 * np.pi) / grid_length_y / bev_h
+                  np.cos(bev_angle / 180 * np.pi) / grid_length_y / bev_h
         shift_x = translation_length * \
-            np.sin(bev_angle / 180 * np.pi) / grid_length_x / bev_w
+                  np.sin(bev_angle / 180 * np.pi) / grid_length_x / bev_w
         shift_y = shift_y * self.use_shift
         shift_x = shift_x * self.use_shift
         shift = bev_queries.new_tensor(
@@ -180,7 +164,7 @@ class PerceptionTransformer(BaseModule):
             if self.use_cams_embeds:
                 feat = feat + self.cams_embeds[:, None, None, :].to(feat.dtype)
             feat = feat + self.level_embeds[None,
-                                            None, lvl:lvl + 1, :].to(feat.dtype)
+                          None, lvl:lvl + 1, :].to(feat.dtype)
             spatial_shapes.append(spatial_shape)
             feat_flatten.append(feat)
 

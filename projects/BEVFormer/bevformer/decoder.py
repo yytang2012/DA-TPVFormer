@@ -4,19 +4,13 @@
 #  Modified by Zhiqi Li
 # ---------------------------------------------
 
-from mmcv.ops.multi_scale_deform_attn import multi_scale_deformable_attn_pytorch, MultiScaleDeformableAttnFunction
-import mmcv
-import cv2 as cv
-import copy
+import math
 import warnings
-from matplotlib import pyplot as plt
-import numpy as np
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from mmcv.cnn.bricks.transformer import TransformerLayerSequence
-import math
-
+from mmcv.ops.multi_scale_deform_attn import multi_scale_deformable_attn_pytorch, MultiScaleDeformableAttnFunction
 from mmcv.utils import ext_loader
 from mmengine.model import BaseModule, constant_init, xavier_init
 
