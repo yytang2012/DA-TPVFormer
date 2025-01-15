@@ -7,7 +7,7 @@ from mmengine.structures import InstanceData
 from torch import Tensor
 
 from mmdet3d.registry import TASK_UTILS
-from projects.BEVFormer.bevformer.utils.util import normalize_bbox
+from projects.BEVFormer.bevformer.util import normalize_bbox
 
 try:
     from scipy.optimize import linear_sum_assignment

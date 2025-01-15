@@ -13,7 +13,7 @@ from nuscenes.eval.common.utils import quaternion_yaw, Quaternion
 
 
 @DATASETS.register_module()
-class NuScenesTempralDataset(NuScenesDataset):
+class NuScenesTemporalDataset(NuScenesDataset):
     """NuScenes Dataset with temporal support.
 
     This dataset adds temporal support and maintains compatibility with

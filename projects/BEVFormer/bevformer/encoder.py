@@ -17,7 +17,7 @@ from mmengine import digit_version
 from mmengine.utils.dl_utils import TORCH_VERSION
 
 from mmdet3d.registry import MODELS
-from projects.BEVFormer.bevformer.models.layers.transformer_layer import BEVFormerBaseTransformerLayer
+from projects.BEVFormer.bevformer.transformer_layer import BEVFormerBaseTransformerLayer
 
 ext_module = ext_loader.load_ext(
     '_ext', ['ms_deform_attn_backward', 'ms_deform_attn_forward'])

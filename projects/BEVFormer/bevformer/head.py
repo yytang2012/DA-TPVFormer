@@ -8,16 +8,14 @@ from mmdet.models import DETRHead, inverse_sigmoid
 from mmdet.models.utils import multi_apply
 from mmdet.registry import TASK_UTILS
 from mmdet.utils import reduce_mean
-from mmengine import digit_version
 from mmengine.model import bias_init_with_prob
 from mmengine.structures import InstanceData
-from mmengine.utils.dl_utils import TORCH_VERSION
 from torch import Tensor
 
 from mmdet3d.models.task_modules.builder import build_bbox_coder
 from mmdet3d.registry import MODELS
 from mmdet3d.utils import InstanceList, OptInstanceList
-from projects.BEVFormer.bevformer.utils.util import normalize_bbox
+from projects.BEVFormer.bevformer.util import normalize_bbox
 
 
 @MODELS.register_module()

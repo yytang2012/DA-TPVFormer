@@ -14,11 +14,6 @@ from mmengine.model import BaseModule, ModuleList
 
 from mmdet3d.registry import MODELS
 
-# from mmcv.runner.base_module import BaseModule, ModuleList, Sequential
-# from mmcv import ConfigDict, deprecated_api_warning
-#
-# from mmcv.cnn.bricks.registry import (ATTENTION, FEEDFORWARD_NETWORK, POSITIONAL_ENCODING,
-#                                       TRANSFORMER_LAYER, TRANSFORMER_LAYER_SEQUENCE)
 
 # Avoid BC-breaking of importing MultiScaleDeformableAttention from this file
 try:

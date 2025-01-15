@@ -1,16 +1,12 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 import copy
 import torch
-from mmengine.structures import InstanceData
 from torch import Tensor
-from mmdet3d.structures.det3d_data_sample import (ForwardResults,
-                                                  OptSampleList, SampleList)
 
 from mmdet3d.models import MVXTwoStageDetector
 from mmdet3d.registry import MODELS
-from mmdet3d.structures import Det3DDataSample, bbox3d2result
 from mmdet3d.structures.bbox_3d.utils import get_lidar2img
-from projects.BEVFormer.bevformer.utils.grid_mask import GridMask
+from projects.BEVFormer.bevformer.grid_mask import GridMask
 
 
 @MODELS.register_module()
