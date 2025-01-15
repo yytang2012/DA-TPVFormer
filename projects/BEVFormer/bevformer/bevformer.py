@@ -18,7 +18,6 @@ class BEVFormer(MVXTwoStageDetector):
 
     def __init__(self,
                  use_grid_mask=False,
-                 pts_voxel_layer=None,
                  pts_voxel_encoder=None,
                  pts_middle_encoder=None,
                  pts_fusion_layer=None,
@@ -32,10 +31,9 @@ class BEVFormer(MVXTwoStageDetector):
                  train_cfg=None,
                  test_cfg=None,
                  rescale=False,
-                 pretrained=None,
                  video_test_mode=False,
-                 data_preprocessor=None,  # 添加 data_preprocessor
-                 init_cfg=None,  # 添加 init_cfg
+                 data_preprocessor=None,
+                 init_cfg=None,
                  **kwargs
                  ):
 
@@ -52,8 +50,8 @@ class BEVFormer(MVXTwoStageDetector):
             img_rpn_head=img_rpn_head,
             train_cfg=train_cfg,
             test_cfg=test_cfg,
-            init_cfg=init_cfg,  # 添加 init_cfg
-            data_preprocessor=data_preprocessor,  # 添加 data_preprocessor
+            init_cfg=init_cfg,
+            data_preprocessor=data_preprocessor,
             **kwargs
         )
         self.grid_mask = GridMask(
@@ -131,23 +129,6 @@ class BEVFormer(MVXTwoStageDetector):
         img_feats = self.extract_img_feat(imgs, batch_input_metas)
         return img_feats
 
-    def forward_pts_train(self,
-                          img_feats,
-                          img_metas,
-                          data_samples,
-                          prev_bev=None
-                          ):
-
-        outs = self.pts_bbox_head(img_feats, img_metas, prev_bev)
-
-        batch_gt_instances_3d = [
-            item.gt_instances_3d for item in data_samples
-        ]
-        loss_inputs = [batch_gt_instances_3d, outs]
-        losses_pts = self.pts_bbox_head.loss_by_feat(*loss_inputs)
-
-        return losses_pts
-
     def forward_dummy(self, img):
         dummy_metas = None
         return self.forward_test(img=img, img_metas=[[dummy_metas]])
@@ -182,16 +163,14 @@ class BEVFormer(MVXTwoStageDetector):
             return prev_bev
 
     def forward(self, *args, mode: str = 'tensor', **kwargs):
-        # return super.forward(*args, **kwargs)
         if mode == 'loss':
-            return self.loss(args)
+            return self.loss(args, **kwargs)
         elif mode == 'predict':
             return self.predict(**kwargs)
         else:
-            raise RuntimeError(f'Invalid mode "{mode}". '
-                               'Only supports loss, predict and tensor mode')
+            raise RuntimeError(f'Invalid mode "{mode}". Only supports loss and predict mode')
 
-    def loss(self, data_list):
+    def loss(self, data_list, **kwargs):
         # Process the current sample
         current_sample = data_list[-1]
         inputs = current_sample.get("inputs")
@@ -206,12 +185,14 @@ class BEVFormer(MVXTwoStageDetector):
 
         img_feats = self.extract_feat(batch_inputs_dict=inputs, batch_input_metas=input_metas)
 
-        losses_pts = self.forward_pts_train(
-            img_feats=img_feats,
-            img_metas=input_metas,
-            data_samples=data_samples,
-            prev_bev=prev_bev
-        )
+        outs = self.pts_bbox_head(img_feats, input_metas, prev_bev)
+
+        batch_gt_instances_3d = [
+            item.gt_instances_3d for item in data_samples
+        ]
+        loss_inputs = [batch_gt_instances_3d, outs]
+        losses_pts = self.pts_bbox_head.loss_by_feat(*loss_inputs)
+
         return losses_pts
 
     def predict(self, inputs=None, data_samples=None, **kwargs):
@@ -227,52 +208,21 @@ class BEVFormer(MVXTwoStageDetector):
         """
 
         # Get meta information
-        batch_input_metas = [item.metainfo for item in data_samples]
-        batch_input_metas = self.add_lidar2img(batch_input_metas)
+        input_metas = [item.metainfo for item in data_samples]
+        input_metas = self.add_lidar2img(input_metas)
+        input_metas = self.add_motion_info(input_metas)  # Add motion and temporal information
 
-        # Add motion and temporal information
-        batch_input_metas = self.add_motion_info(batch_input_metas)
+        img_feats = self.extract_feat(batch_inputs_dict=inputs, batch_input_metas=input_metas)
 
-        new_prev_bev, results_list_3d = self.simple_test(
-            batch_input_metas=batch_input_metas,
-            batch_inputs_dict=inputs,
-            prev_bev=self.prev_frame_info['prev_bev'],
-            **kwargs
-        )
-        self.prev_frame_info['prev_bev'] = new_prev_bev if self.video_test_mode else None
+        outs = self.pts_bbox_head(img_feats, input_metas, prev_bev=self.prev_frame_info['prev_bev'])
 
-        # for i, data_sample in enumerate(data_samples):
-        #     results_list_3d_i = InstanceData(
-        #         metainfo=results_list_3d[i]['pts_bbox'])
-        #     data_sample.pred_instances_3d = results_list_3d_i
-        #     data_sample.pred_instances = InstanceData()
-        # change the bboxes' format
+        results_list_3d = self.pts_bbox_head.predict_by_feat(outs, input_metas, rescale=self.rescale)
+
+        self.prev_frame_info['prev_bev'] = outs['bev_embed'] if self.video_test_mode else None
+
         data_samples = self.add_pred_to_datasample(data_samples, results_list_3d)
 
         return data_samples
-
-    def simple_test_pts(self, x, batch_input_metas, prev_bev=None):
-        """Test function"""
-        outs = self.pts_bbox_head(x, batch_input_metas, prev_bev=prev_bev)
-
-        results_list_3d = self.pts_bbox_head.predict_by_feat(
-            outs, batch_input_metas, rescale=self.rescale)
-        # bbox_results = [
-        #     bbox3d2result(bboxes, scores, labels)
-        #     for bboxes, scores, labels in bbox_list
-        # ]
-        return outs['bev_embed'], results_list_3d
-
-    def simple_test(self, batch_inputs_dict, batch_input_metas=None, prev_bev=None):
-        """Test function without augmentation."""
-        img_feats = self.extract_feat(batch_inputs_dict=batch_inputs_dict, batch_input_metas=batch_input_metas)
-
-        bbox_list = [dict() for i in range(len(batch_input_metas))]
-        new_prev_bev, results_list_3d = self.simple_test_pts(
-            img_feats, batch_input_metas, prev_bev)
-        # for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
-        #     result_dict['pts_bbox'] = pts_bbox
-        return new_prev_bev, results_list_3d
 
     def add_motion_info(self, batch_input_metas: List[Dict]) -> List[Dict]:
         """Add temporal and ego motion information into batch_input_metas.

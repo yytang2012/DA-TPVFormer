@@ -22,7 +22,7 @@ class NuScenesTemporalDataset(NuScenesDataset):
 
     def __init__(self,
                  queue_length: int = 4,
-                 bev_size: tuple = (200, 200),
+                 # bev_size: tuple = (200, 200),
                  overlap_test: bool = False,
                  data_root: Optional[str] = None,
                  use_can_bus=False,
@@ -30,7 +30,7 @@ class NuScenesTemporalDataset(NuScenesDataset):
         super().__init__(data_root, **kwargs)
         self.queue_length = queue_length
         self.overlap_test = overlap_test
-        self.bev_size = bev_size
+        # self.bev_size = bev_size
         self.use_can_bus = use_can_bus
         # Initialize CAN bus
         if self.use_can_bus is True:

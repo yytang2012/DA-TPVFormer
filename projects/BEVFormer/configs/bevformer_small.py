@@ -4,9 +4,6 @@ _base_ = [
 
 custom_imports = dict(imports=['projects.BEVFormer.bevformer'])
 
-# plugin = True
-# plugin_dir = 'projects/mmdet3d_plugin/'
-
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
@@ -19,7 +16,7 @@ img_norm_cfg = dict(
 # data_root = 'data/nuscenes/'
 # file_client_args = dict(backend='disk')
 # Configuration for dataset
-dataset_type = 'NuScenesTempralDataset'
+dataset_type = 'NuScenesTemporalDataset'
 # available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
 dataset_version = "v1.0-mini"
 if dataset_version in {"v1.0-trainval", "v1.0-test"}:
@@ -188,42 +185,6 @@ model = dict(
                 iou_cost=dict(type='mmdet.IoUCost', weight=0.0),
                 pc_range=point_cloud_range))))
 
-# backend_args = None
-# train_pipeline = [
-#     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
-#     dict(type='PhotoMetricDistortionMultiViewImage'),
-#     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_attr_label=False),
-#     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-#     dict(type='ObjectNameFilter', classes=class_names),
-#     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-#     dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
-#     dict(type='PadMultiViewImage', size_divisor=32),
-#     # dict(type='DefaultFormatBundle3D', class_names=class_names),
-#     # dict(type='Collect3D', keys=['img', 'gt_bboxes_3d', 'gt_labels_3d'])
-#     dict(
-#         type='Pack3DDetInputs',
-#         keys=[
-#             'img', 'gt_bboxes', 'gt_bboxes_labels', 'attr_labels',
-#             'gt_bboxes_3d', 'gt_labels_3d', 'centers_2d', 'depths'
-#         ],
-#         meta_keys=('img_path', 'ori_shape', 'img_shape', 'lidar2img',
-#                    'depth2img', 'cam2img', 'pad_shape',
-#                    'scale_factor', 'flip', 'pcd_horizontal_flip',
-#                    'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
-#                    'img_norm_cfg', 'num_pts_feats', 'pcd_trans',
-#                    'sample_idx', 'pcd_scale_factor', 'pcd_rotation',
-#                    'pcd_rotation_angle', 'lidar_path',
-#                    'transformation_3d_flow', 'trans_mat',
-#                    'affine_aug', 'sweep_img_metas', 'ori_cam2img',
-#                    'cam2global', 'crop_offset', 'img_crop_offset',
-#                    'resize_img_shape', 'lidar2cam', 'ori_lidar2img',
-#                    'num_ref_frames', 'num_views', 'ego2global',
-#                    'axis_align_matrix',
-#                    'prev_idx', 'next_idx', 'scene_token', 'can_bus')
-#     )
-# ]
-
-
 test_transforms = [
     dict(
         type='RandomResize3D',
@@ -269,43 +230,13 @@ train_pipeline = [
     )
 ]
 
-# test_pipeline = [
-#     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
-#     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-#     dict(
-#         type='MultiScaleFlipAug3D',
-#         img_scale=(1600, 900),
-#         pts_scale_ratio=1,
-#         flip=False,
-#         transforms=[
-#             dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
-#             # dict(type='PadMultiViewImage', size_divisor=32),
-#             # dict(type='DefaultFormatBundle3D', class_names=class_names, with_label=False),
-#             # dict(type='Collect3D', keys=['img'])
-#         ])
-# ]
 test_pipeline = [
     dict(
         type='LoadMultiViewImageFromFiles',
         to_float32=True,
         num_views=6,
         backend_args=backend_args),
-    # dict(type='NormalizeMultiviewImage', **img_norm_cfg),  # TODO: move to  data_preprocessor
     dict(type='MultiViewWrapper', transforms=test_transforms),
-    # dict(
-    #     type='MultiScaleFlipAug3D',
-    #     img_scale=(1600, 900),
-    #     pts_scale_ratio=1,
-    #     flip=False,
-    #     transforms=[
-    #         dict(type='RandomScaleImageMultiViewImage', scales=[0.8]),
-    #         # dict(type='PadMultiViewImage', size_divisor=32),
-    #         # dict(
-    #         #     type='Pack3DDetInputs',  # Replace DefaultFormatBundle3D
-    #         #     keys=['img'])
-    #     ]),
-    # dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    # dict(type='ObjectNameFilter', classes=class_names),
     dict(
         type='Pack3DDetInputs',
         keys=['img'],
