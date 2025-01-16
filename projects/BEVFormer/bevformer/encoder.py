@@ -8,13 +8,12 @@ import numpy as np
 import torch
 import copy
 import warnings
-from mmcv.cnn.bricks.transformer import TransformerLayerSequence
+from mmcv.cnn.bricks.transformer import TransformerLayerSequence, BaseTransformerLayer
 from mmcv.utils import ext_loader
 from mmengine import digit_version
 from mmengine.utils.dl_utils import TORCH_VERSION
 
 from mmdet3d.registry import MODELS
-from projects.BEVFormer.bevformer.transformer_layer import BEVFormerBaseTransformerLayer
 
 ext_module = ext_loader.load_ext(
     '_ext', ['ms_deform_attn_backward', 'ms_deform_attn_forward'])
@@ -240,7 +239,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
 
 
 @MODELS.register_module()
-class BEVFormerLayer(BEVFormerBaseTransformerLayer):
+class BEVFormerLayer(BaseTransformerLayer):
     """Implements decoder layer in DETR transformer.
     Args:
         attn_cfgs (list[`mmcv.ConfigDict`] | list[dict] | dict )):
@@ -269,8 +268,9 @@ class BEVFormerLayer(BEVFormerBaseTransformerLayer):
                  act_cfg=dict(type='ReLU', inplace=True),
                  norm_cfg=dict(type='LN'),
                  ffn_num_fcs=2,
+                 batch_first=True,
                  **kwargs):
-        super(BEVFormerLayer, self).__init__(
+        super().__init__(
             attn_cfgs=attn_cfgs,
             feedforward_channels=feedforward_channels,
             ffn_dropout=ffn_dropout,
@@ -278,6 +278,7 @@ class BEVFormerLayer(BEVFormerBaseTransformerLayer):
             act_cfg=act_cfg,
             norm_cfg=norm_cfg,
             ffn_num_fcs=ffn_num_fcs,
+            batch_first=batch_first,
             **kwargs)
         self.fp16_enabled = False
         assert len(operation_order) == 6
@@ -409,7 +410,7 @@ from mmcv.cnn.bricks.transformer import build_attention
 
 
 @MODELS.register_module()
-class MM_BEVFormerLayer(BEVFormerBaseTransformerLayer):
+class MM_BEVFormerLayer(BaseTransformerLayer):
     """multi-modality fusion layer.
     """
 
@@ -422,8 +423,9 @@ class MM_BEVFormerLayer(BEVFormerBaseTransformerLayer):
                  norm_cfg=dict(type='LN'),
                  ffn_num_fcs=2,
                  lidar_cross_attn_layer=None,
+                 batch_first=True,
                  **kwargs):
-        super(MM_BEVFormerLayer, self).__init__(
+        super().__init__(
             attn_cfgs=attn_cfgs,
             feedforward_channels=feedforward_channels,
             ffn_dropout=ffn_dropout,
@@ -431,6 +433,7 @@ class MM_BEVFormerLayer(BEVFormerBaseTransformerLayer):
             act_cfg=act_cfg,
             norm_cfg=norm_cfg,
             ffn_num_fcs=ffn_num_fcs,
+            batch_first=batch_first,
             **kwargs)
         self.fp16_enabled = False
         assert len(operation_order) == 6
