@@ -156,7 +156,7 @@ class NuScenesTemporalDataset(NuScenesDataset):
             each['data_samples'].set_metainfo(_meta)
         return queue
 
-    def __getitem__(self, idx: int) -> Optional[dict]:
+    def __getitem__(self, idx: int) -> Union[dict, None, List[dict]]:
         """Get item from dataset."""
         if self.test_mode:
             return self.prepare_data(idx)
@@ -164,6 +164,7 @@ class NuScenesTemporalDataset(NuScenesDataset):
         while True:
             data = self.prepare_temporal_data(idx)
             if data is None:
-                idx = self._rand_another(idx)
+                print_log(f"NuScenesTemporalDataset: idx:{idx}")
+                idx = self._rand_another()
                 continue
             return data
