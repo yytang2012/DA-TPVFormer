@@ -28,7 +28,8 @@ nus_attributes = ('cycle.with_rider', 'cycle.without_rider',
 def create_nuscenes_infos(root_path,
                           info_prefix,
                           version='v1.0-trainval',
-                          max_sweeps=10):
+                          max_sweeps=10,
+                          with_canbus=False):
     """Create info file of nuscene dataset.
 
     Given the raw data, generate its related info file in pkl format.
@@ -40,11 +41,21 @@ def create_nuscenes_infos(root_path,
             Default: 'v1.0-trainval'.
         max_sweeps (int, optional): Max number of sweeps.
             Default: 10.
+        with_canbus (bool, optional): Whether to include CAN bus data.
+            Default: False.
     """
     from nuscenes.nuscenes import NuScenes
-    from nuscenes.can_bus.can_bus_api import NuScenesCanBus
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
-    nusc_can_bus = NuScenesCanBus(dataroot=root_path)
+
+    nusc_can_bus = None
+    if with_canbus:
+        try:
+            from nuscenes.can_bus.can_bus_api import NuScenesCanBus
+            nusc_can_bus = NuScenesCanBus(dataroot=root_path)
+        except:
+            print('Warning: CAN bus data not available, proceeding without it.')
+            with_canbus = False
+
     from nuscenes.utils import splits
     available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
     assert version in available_vers
@@ -145,7 +156,14 @@ def get_available_scenes(nusc):
     return available_scenes
 
 
-def _get_can_bus_info(nusc, nusc_can_bus, sample):
+def _get_can_bus_info(nusc, nusc_can_bus, sample, with_canbus=False):
+    """Get CAN bus info from the sample.
+
+    Returns zeros if CAN bus info is not available or not requested.
+    """
+    if not with_canbus or nusc_can_bus is None:
+        return np.zeros(18)
+
     scene_name = nusc.get('scene', sample['scene_token'])['name']
     sample_timestamp = sample['timestamp']
     try:
@@ -175,7 +193,8 @@ def _fill_trainval_infos(nusc,
                          train_scenes,
                          val_scenes,
                          test=False,
-                         max_sweeps=10):
+                         max_sweeps=10,
+                         with_canbus=False):
     """Generate the train/val infos from the raw data.
 
     Args:
@@ -185,6 +204,7 @@ def _fill_trainval_infos(nusc,
         test (bool, optional): Whether use the test mode. In test mode, no
             annotations can be accessed. Default: False.
         max_sweeps (int, optional): Max number of sweeps. Default: 10.
+        with_canbus (bool): Whether to include CAN bus information.
 
     Returns:
         tuple[list[dict]]: Information of training set and validation set
@@ -202,7 +222,7 @@ def _fill_trainval_infos(nusc,
         lidar_path, boxes, _ = nusc.get_sample_data(lidar_token)
 
         mmengine.check_file_exist(lidar_path)
-        can_bus = _get_can_bus_info(nusc, nusc_can_bus, sample)
+        can_bus = _get_can_bus_info(nusc, nusc_can_bus, sample, with_canbus)
 
         info = {
             'lidar_path': lidar_path,

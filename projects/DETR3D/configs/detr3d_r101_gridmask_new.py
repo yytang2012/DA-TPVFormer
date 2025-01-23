@@ -9,7 +9,7 @@ custom_imports = dict(imports=['projects.DETR3D.detr3d'])
 dataset_type = 'NuScenesDataset'
 
 # available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
-dataset_version = "v1.0-test"
+dataset_version = "v1.0-trainval"
 if dataset_version in {"v1.0-trainval", "v1.0-test"}:
     data_root = 'data/nuscenes/'
     eval_version = "v1.0-trainval"
@@ -267,7 +267,7 @@ test_cfg = dict(type='TestLoop')
 default_hooks = dict(
     checkpoint=dict(
         type='CheckpointHook', interval=1, max_keep_ckpts=1, save_last=True))
-load_from = 'ckpts/fcos3d.pth'
+load_from = 'checkpoints/fcos3d.pth'
 
 # setuptools 65 downgrades to 58.
 # In mmlab-node we use setuptools 61 but occurs NO errors
