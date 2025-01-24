@@ -58,7 +58,8 @@ def nuscenes_data_prep(root_path,
                        version,
                        dataset_name,
                        out_dir,
-                       max_sweeps=10):
+                       max_sweeps=10,
+                       with_canbus=False):
     """Prepare data related to nuScenes dataset.
 
     Related data consists of '.pkl' files recording basic infos,
@@ -72,9 +73,12 @@ def nuscenes_data_prep(root_path,
         out_dir (str): Output directory of the groundtruth database info.
         max_sweeps (int, optional): Number of input consecutive frames.
             Default: 10
+        with_canbus (bool, optional): Whether to include CAN bus data.
+            Default: False
     """
     nuscenes_converter.create_nuscenes_infos(
-        root_path, info_prefix, version=version, max_sweeps=max_sweeps)
+        root_path, info_prefix, version=version, max_sweeps=max_sweeps,
+        with_canbus=with_canbus)
 
     if version == 'v1.0-test':
         info_test_path = osp.join(out_dir, f'{info_prefix}_infos_test.pkl')
@@ -312,6 +316,10 @@ parser.add_argument(
     action='store_true',
     help='''Whether to skip saving image and lidar.
         Only used when dataset is Waymo!''')
+parser.add_argument(
+    '--with-canbus',
+    action='store_true',
+    help='Whether to include CAN bus information for nuscenes.')
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -348,7 +356,8 @@ if __name__ == '__main__':
                 version=train_version,
                 dataset_name='NuScenesDataset',
                 out_dir=args.out_dir,
-                max_sweeps=args.max_sweeps)
+                max_sweeps=args.max_sweeps,
+                with_canbus=args.with_canbus)
             test_version = f'{args.version}-test'
             nuscenes_data_prep(
                 root_path=args.root_path,
@@ -356,7 +365,8 @@ if __name__ == '__main__':
                 version=test_version,
                 dataset_name='NuScenesDataset',
                 out_dir=args.out_dir,
-                max_sweeps=args.max_sweeps)
+                max_sweeps=args.max_sweeps,
+                with_canbus=args.with_canbus)
     elif args.dataset == 'nuscenes' and args.version == 'v1.0-mini':
         if args.only_gt_database:
             create_groundtruth_database('NuScenesDataset', args.root_path,
@@ -370,7 +380,8 @@ if __name__ == '__main__':
                 version=train_version,
                 dataset_name='NuScenesDataset',
                 out_dir=args.out_dir,
-                max_sweeps=args.max_sweeps)
+                max_sweeps=args.max_sweeps,
+                with_canbus=args.with_canbus)
     elif args.dataset == 'waymo':
         waymo_data_prep(
             root_path=args.root_path,

@@ -80,12 +80,6 @@ val_pipeline = [
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
     dict(
-        type='PointsBoxFilter',
-        # point_box_type=((-25, 25), (-10, 10), (None, None)),
-        point_box_type=((None, None), (None, None), (None, None)),
-        keep_inside=False
-    ),
-    dict(
         type='Pack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask'],
         meta_keys=['lidar2img'])

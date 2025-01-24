@@ -20,7 +20,21 @@ class_names = [
     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
 ]
-metainfo = dict(classes=class_names)
+
+dataset_type = 'NuScenesDataset'
+# data_root = 'data/nuscenes/'
+
+# available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
+dataset_version = "v1.0-mini"
+if dataset_version in {"v1.0-trainval", "v1.0-test"}:
+    data_root = 'data/nuscenes/'
+    eval_version = "v1.0-trainval"
+else:
+    data_root = 'data/nuscenes-mini/'
+    eval_version = "v1.0-mini"
+
+
+metainfo = dict(classes=class_names, version=eval_version)
 
 input_modality = dict(use_camera=True)
 model = dict(
@@ -114,8 +128,6 @@ model = dict(
                 ),  # Fake cost. Just to be compatible with DETR head.
                 pc_range=point_cloud_range))))
 
-dataset_type = 'NuScenesDataset'
-data_root = 'data/nuscenes/'
 backend_args = None
 
 db_sampler = dict(
@@ -208,6 +220,7 @@ train_dataloader = dict(
     num_workers=4,
     dataset=dict(
         type=dataset_type,
+        data_root=data_root,
         data_prefix=dict(
             pts='samples/LIDAR_TOP',
             CAM_FRONT='samples/CAM_FRONT',
@@ -226,6 +239,7 @@ train_dataloader = dict(
 test_dataloader = dict(
     dataset=dict(
         type=dataset_type,
+        data_root=data_root,
         data_prefix=dict(
             pts='samples/LIDAR_TOP',
             CAM_FRONT='samples/CAM_FRONT',
@@ -244,6 +258,7 @@ test_dataloader = dict(
 val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
+        data_root=data_root,
         data_prefix=dict(
             pts='samples/LIDAR_TOP',
             CAM_FRONT='samples/CAM_FRONT',
@@ -259,6 +274,16 @@ val_dataloader = dict(
         modality=input_modality,
         use_valid_flag=True,
         backend_args=backend_args))
+
+
+
+val_evaluator = dict(
+    type='NuScenesMetric',
+    data_root=data_root,
+    ann_file=data_root + 'nuscenes_infos_val.pkl',
+    metric='bbox',
+    backend_args=backend_args)
+test_evaluator = val_evaluator
 
 # Different from original PETR:
 # We don't use special lr for image_backbone
@@ -290,13 +315,13 @@ param_scheduler = [
     )
 ]
 
-train_cfg = dict(max_epochs=num_epochs, val_interval=num_epochs)
+train_cfg = dict(max_epochs=num_epochs, val_interval=1)
 
 find_unused_parameters = False
 
 # pretrain_path can be found here:
 # https://drive.google.com/file/d/1ABI5BoQCkCkP4B0pO5KBJ3Ni0tei0gZi/view
-load_from = '/mnt/d/fcos3d_vovnet_imgbackbone-remapped.pth'
+load_from = 'checkpoints/fcos3d_vovnet_imgbackbone-remapped.pth'
 resume = False
 
 # --------------Original---------------

@@ -1,0 +1,120 @@
+ARG PYTORCH="2.3.0"
+ARG CUDA="12.1"
+ARG CUDNN="8"
+
+FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel as base
+
+ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX" \
+    TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
+    CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
+    FORCE_CUDA="1"
+
+# Avoid Public GPG key error
+# https://github.com/NVIDIA/nvidia-docker/issues/1631
+RUN rm /etc/apt/sources.list.d/cuda.list \
+    && rm /etc/apt/sources.list.d/nvidia-ml.list \
+    && apt-key del 7fa2af80 \
+    && apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub \
+    && apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub
+
+
+# Setup the source list
+RUN echo "Setting up source list..." && \
+    sed -i s@/archive.ubuntu.com/@/mirrors.bfsu.edu.cn/@g /etc/apt/sources.list && \
+    sed -i s@/security.ubuntu.com/@/mirrors.bfsu.edu.cn/@g /etc/apt/sources.list && \
+    apt-get clean && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3-dev python3-pip python3-setuptools libgtk2.0-dev git g++ wget make vim curl libgl1-mesa-glx \
+    ffmpeg libsm6 libxext6 ninja-build libglib2.0-0 libxrender-dev && \
+    echo "Source list setup complete."
+
+# Install Miniconda
+ENV MINICONDA_VERSION latest
+RUN echo "Installing Miniconda..." && \
+    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda clean -afy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc && \
+    echo "Miniconda installation complete."
+
+# Set global index-url for pip
+RUN echo "Setting global index-url for pip..." && \
+    pip3 config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple/ && \
+    pip3 install --upgrade setuptools pip && \
+    echo "Pip configuration complete."
+
+# Set PATH environment variable
+ENV PATH /opt/conda/bin:$PATH
+
+# Initialize Conda in bash config
+RUN echo "Initializing Conda in bash config..." && \
+    echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate openmmlab" >> ~/.bashrc && \
+    echo "Conda initialization complete."
+
+# Create and activate the Conda environment in a single RUN command to ensure the environment is activated
+RUN echo "Creating and activating Conda environment..." && \
+    /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && \
+    conda create --name openmmlab python=3.8 -y && \
+    conda activate openmmlab && \
+    echo 'Conda environment openmmlab created and activated.'"
+
+FROM base AS mmdetection3d_runtime
+
+# Change Conda source to BFSU mirror
+RUN echo "Changing Conda source to BFSU mirror..." && \
+    conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/main/ && \
+    conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/conda-forge/ && \
+    conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/bioconda/ && \
+    conda config --set show_channel_urls yes && \
+    echo "Conda source changed to BFSU mirror."
+
+# Install MMEngine, MMCV, and MMDetection with retry logic
+RUN echo "Installing MMEngine, MMCV, and MMDetection..." && \
+    /bin/bash -c "source /opt/conda/etc/profile.d/conda.sh && \
+    conda activate openmmlab && \
+    for i in {1..5}; do \
+        echo 'Attempt $i: Installing PyTorch and related packages...' && \
+        conda install -y pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia && \
+        if [ $? -eq 0 ]; then echo 'PyTorch installation successful.'; break; else echo 'Retrying in 1 seconds...'; sleep 1; fi; \
+    done && \
+    echo 'Installing OpenMIM...' && \
+    pip install -U openmim && \
+    echo 'Installing MMEngine, MMCV, and MMDetection...' && \
+    mim install --no-cache-dir 'mmengine' 'mmcv>=2.0.0rc4' 'mmdet>=3.0.0' && \
+    echo 'MMEngine, MMCV, and MMDetection installation complete.'"
+
+
+
+FROM mmdetection3d_runtime AS mmdetection3d
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends  ca-certificates
+#
+#
+#RUN git clone https://github.com/open-mmlab/mmdetection3d.git -b dev-1.x /mmdetection3d \
+#    && cd /mmdetection3d \
+#    && pip install --no-cache-dir -e .
+
+#
+## Install MMDetection3D
+#WORKDIR /mmdetection3d
+#COPY . .
+#
+#RUN conda clean --all \
+#    && cd /mmdetection3d \
+#    && pip install --no-cache-dir -e .
+
+FROM mmdetection3d AS runtime
+# Set the working directory
+WORKDIR /mmdetection3d
+#COPY requirements.txt .
+#RUN pip install --no-cache-dir -r requirements.txt
+
+#COPY . .
+#CMD ["/bin/bash"]
+
+# Do the following in Host
+# xhost +local:docker

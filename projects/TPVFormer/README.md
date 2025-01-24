@@ -26,15 +26,15 @@ In MMDetection3D's root directory, run the following command to train the model:
 
 1. Downloads the [pretrained backbone weights](https://download.openmmlab.com/mmdetection3d/v1.1.0_models/tpvformer/tpvformer_8xb1-2x_nus-seg/tpvformer_pretrained_fcos3d_r101_dcn.pth) to checkpoints/
 
-2. For example, to train TPVFormer on 8 GPUs, please use
+2. For example, to train TPVFormer on 1 Nvidia4090 GPU, please use
 
 ```bash
-bash tools/dist_train.sh projects/TPVFormer/config/tpvformer_8xb1-2x_nus-seg.py 8
+bash tools/dist_train.sh projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg.py 1 --amp
 ```
 
 or train directly with python script
 ```shell
-python tools/train.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg-small-mini-test.py  --launcher pytorch
+python tools/train.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg-small-mini-test.py  --launcher pytorch --amp
 ```
 
 ### Testing commands
@@ -42,7 +42,7 @@ python tools/train.py ./projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg-sma
 In MMDetection3D's root directory, run the following command to test the model on 8 GPUs:
 
 ```bash
-bash tools/dist_test.sh projects/TPVFormer/config/tpvformer_8xb1-2x_nus-seg.py  ${CHECKPOINT_PATH} 8
+bash tools/dist_test.sh projects/TPVFormer/configs/tpvformer_8xb1-2x_nus-seg.py  ${CHECKPOINT_PATH} 8
 ```
 
 ## Results and models
