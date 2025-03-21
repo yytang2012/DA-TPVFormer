@@ -7,7 +7,7 @@ import numpy as np
 from mmcv.transforms.base import BaseTransform
 from mmengine.fileio import get
 
-from mmdet3d.datasets.transforms import LoadMultiViewImageFromFiles, Pack3DDetInputs, MultiViewWrapper
+from mmdet3d.datasets.transforms import LoadMultiViewImageFromFiles, Pack3DDetInputs
 from mmdet3d.registry import TRANSFORMS
 
 import cv2
@@ -15,9 +15,10 @@ from typing import List, Sequence, Union
 import mmengine
 from numpy import dtype
 from mmdet3d.structures import BaseInstance3DBoxes, Det3DDataSample, PointData
-from mmdet3d.structures.points import BasePoints
+from mmdet3d.structures.points import BasePoints, LiDARPoints
 from mmengine.structures import InstanceData
 import torch
+
 Number = Union[int, float]
 
 def to_tensor(
@@ -253,9 +254,15 @@ class PointsBoxFilter(BaseTransform):
         mask_h = mask
 
         # Filter points
-        # results['points'] = points[mask]
+
         results['points_l'] = points[mask_l]
         results['points_h'] = points[mask_h]
+        merge_results = np.concatenate(
+            (results['points_h'], results['points_l']), axis=0
+        )
+        results['points'] = LiDARPoints(merge_results)
+
+
 
         # Filter instance and semantic masks if they exist
         if 'pts_instance_mask' in results:

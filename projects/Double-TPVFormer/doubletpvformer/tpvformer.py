@@ -24,14 +24,17 @@ class TPVFormer(Base3DSegmentor):
         if neck is not None:
             self.neck = MODELS.build(neck)
         self.encoder = MODELS.build(encoder)
+        encoder_high = copy.deepcopy(encoder)
+        # encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+        # encoder_high.pc_range = [-15, -15, -2.5, 15, 15, 1.5]
+        encoder_high.pc_range = [-18, -18, -2.5, 18, 18, 1.5]
+        encoder_high.tpv_h = 100
+        encoder_high.tpv_w = 100
+        encoder_high.tpv_z = 16
+        encoder_high.num_points_in_pillar = [4, 32, 32]
+        encoder_high.num_points_in_pillar_cross_view = [16, 16, 16]
+        self.encoder_high = MODELS.build(encoder_high)
 
-        self.encoder_high = MODELS.build(encoder)
-        self.encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
-        self.encoder_high.tpv_h = 100
-        self.encoder_high.tpv_w = 100
-        self.encoder_high.tpv_z = 16
-        self.encoder_high.num_points_in_pillar = [4, 32, 32]
-        self.encoder_high.num_points_in_pillar_cross_view = [16, 16, 16]
 
         self.decode_head = MODELS.build(decode_head)
 
@@ -53,10 +56,9 @@ class TPVFormer(Base3DSegmentor):
     def _forward(self, batch_inputs, batch_data_samples):
         """Forward training function."""
         img_feats = self.extract_feat(batch_inputs['imgs'])
-        img_feats_low = [feat[:, :6, ...] for feat in img_feats]  # 原始6张图的特征
-        img_feats_high = [feat[:, 6:, ...] for feat in img_feats]  # 裁剪放大6张图的特征
-        outs_l = self.encoder(img_feats_low, batch_data_samples)
-        outs_h = self.encoder_high(img_feats_high, batch_data_samples)
+
+        outs_l = self.encoder(img_feats, batch_data_samples)
+        outs_h = self.encoder_high(img_feats, batch_data_samples)
         outs_l = self.decode_head(outs_l, batch_inputs['voxels']['coors'])
         outs_h = self.decode_head.forward_h(outs_h, batch_inputs['voxels']['coors'])
 
@@ -66,13 +68,11 @@ class TPVFormer(Base3DSegmentor):
     def loss(self, batch_inputs: dict,
              batch_data_samples: SampleList) -> SampleList:
         img_feats = self.extract_feat(batch_inputs['imgs'])
-        # 拆分每个尺度的特征图
-        img_feats_low = [feat[:, :6, ...] for feat in img_feats]  # 原始6张图的特征
-        img_feats_high = [feat[:, 6:, ...] for feat in img_feats]  # 裁剪放大6张图的特征
+
         # 低分辨率的查询
-        queries = self.encoder(img_feats_low, batch_data_samples)
+        queries = self.encoder(img_feats, batch_data_samples)
         # 高分辨率的查询
-        queries_high_resolution = self.encoder_high(img_feats_high, batch_data_samples)
+        queries_high_resolution = self.encoder_high(img_feats, batch_data_samples)
         # 低分辨率的损失
         losses_l = self.decode_head.loss(queries, batch_data_samples)
         # 高分辨率的损失
@@ -86,11 +86,10 @@ class TPVFormer(Base3DSegmentor):
         """Forward predict function."""
         img_feats = self.extract_feat(batch_inputs['imgs'])
 
-        img_feats_low = [feat[:, :6, ...] for feat in img_feats]  # 原始6张图的特征
-        img_feats_high = [feat[:, 6:, ...] for feat in img_feats]  # 裁剪放大6张图的特征
 
-        tpv_queries = self.encoder(img_feats_low, batch_data_samples)
-        tpv_queries_high_resolution = self.encoder_high(img_feats_high, batch_data_samples)
+
+        tpv_queries = self.encoder(img_feats, batch_data_samples)
+        tpv_queries_high_resolution = self.encoder_high(img_feats, batch_data_samples)
 
         seg_logits_list = self.decode_head.predict(tpv_queries, batch_data_samples)
 

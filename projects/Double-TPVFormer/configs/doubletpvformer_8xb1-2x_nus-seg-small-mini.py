@@ -56,11 +56,11 @@ train_pipeline = [
     dict(type='SegLabelMapping'),
     dict(  # Filter points not in the range
         type='PointsBoxFilter',
-        point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
+        # point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
+        # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
+        point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
     ),
-    dict(
-        type='DuplicateAndCropImages',
-        crop_ratio=0.5),
+
     dict(
         type='DTPVPack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h'],
@@ -89,14 +89,13 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
-    dict(  # Filter points not in the range
-        type='PointsBoxFilter',
-        point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
-        # point_box_type=((0, 25), (-10, 10), (None, None))
-    ),
-    dict(
-        type='DuplicateAndCropImages',
-        crop_ratio=0.5),
+    # dict(  # Filter points not in the range
+    #     type='PointsBoxFilter',
+    #     # point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
+    #     # point_box_type=((0, 25), (-10, 10), (None, None))
+    #     point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
+    # ),
+
     dict(
         type='DTPVPack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask'],
@@ -170,7 +169,8 @@ test_cfg = dict(type='TestLoop')
 default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=1))
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-point_cloud_range_h = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+# point_cloud_range_h = [-15, -15, -2.5, 15, 15, 1.5]
+point_cloud_range_h = [-18, -18, -2.5, 18, 18, 1.5]
 _dim_ = 128
 num_heads = 8
 _ffn_dim_ = _dim_ * 2
