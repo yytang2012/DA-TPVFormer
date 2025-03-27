@@ -322,60 +322,11 @@ class PointsBoxFilter(BaseTransform):
         repr_str += f'keep_inside={self.keep_inside})'
         return repr_str
 
-@TRANSFORMS.register_module()
-class DuplicateAndCropImages(BaseTransform):
-    """Duplicate each input image by cropping the center and resizing."""
 
-    def __init__(self, crop_ratio=0.5):
-        """
-        Args:
-            crop_ratio (float): The ratio of the cropped area compared to the original image.
-                                Default is 0.5, meaning the center region is half the width & height.
-        """
-        self.crop_ratio = crop_ratio
-
-    def transform(self, results):
-        """
-        Args:
-            results (dict): The dictionary containing 'img' as a list of images.
-
-        Returns:
-            dict: Updated results with 12 images instead of 6.
-        """
-        new_images = []
-
-        for img in results['img']:
-            # Convert image to NumPy array if needed
-            if not isinstance(img, np.ndarray):
-                img = np.array(img)
-
-            h, w = img.shape[:2]
-
-            # Compute crop region
-            crop_h, crop_w = int(h * self.crop_ratio), int(w * self.crop_ratio)
-            start_h, start_w = (h - crop_h) // 2, (w - crop_w) // 2
-
-            # Crop the center region
-            cropped_img = img[start_h:start_h + crop_h, start_w:start_w + crop_w]
-
-            # Resize back to original size
-            resized_cropped_img = cv2.resize(cropped_img, (w, h), interpolation=cv2.INTER_LINEAR)
-
-            # Append both original and modified image
-
-            new_images.append(resized_cropped_img)  # Cropped and resized
-
-        # Replace the original images with the new ones
-        for resize_img in new_images:
-            if not isinstance(resize_img, np.ndarray):
-                resize_img = np.array(resize_img)
-            results['img'].append(resize_img)
-
-        return results
 
 @TRANSFORMS.register_module()
 class DTPVPack3DDetInputs(Pack3DDetInputs):
-    INPUTS_KEYS = ['points', 'img', 'point_l', 'point_h']
+    INPUTS_KEYS = ['points', 'img', 'points_h']
     INSTANCEDATA_3D_KEYS = [
         'gt_bboxes_3d', 'gt_labels_3d', 'attr_labels', 'depths', 'centers_2d'
     ]
@@ -384,7 +335,7 @@ class DTPVPack3DDetInputs(Pack3DDetInputs):
         'gt_bboxes_labels',
     ]
     SEG_KEYS = [
-        'gt_seg_map', 'pts_instance_mask_l', 'pts_semantic_mask_l',
+        'gt_seg_map',
         'gt_semantic_seg', 'pts_instance_mask_h', 'pts_semantic_mask_h',
         'pts_instance_mask', 'pts_semantic_mask'
     ]
@@ -412,6 +363,9 @@ class DTPVPack3DDetInputs(Pack3DDetInputs):
         if 'points' in results:
             if isinstance(results['points'], BasePoints):
                 results['points'] = results['points'].tensor
+        if 'points_h' in results:
+            if isinstance(results['points_h'], BasePoints):
+                results['points_h'] = results['points_h'].tensor
 
         if 'img' in results:
             if isinstance(results['img'], list):

@@ -30,7 +30,7 @@ class TPVFormer(Base3DSegmentor):
         encoder_high.pc_range = [-18, -18, -2.5, 18, 18, 1.5]
         encoder_high.tpv_h = 100
         encoder_high.tpv_w = 100
-        encoder_high.tpv_z = 16
+        encoder_high.tpv_z = 8
         encoder_high.num_points_in_pillar = [4, 32, 32]
         encoder_high.num_points_in_pillar_cross_view = [16, 16, 16]
         self.encoder_high = MODELS.build(encoder_high)

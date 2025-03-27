@@ -63,7 +63,7 @@ train_pipeline = [
 
     dict(
         type='DTPVPack3DDetInputs',
-        keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h'],
+        keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h', 'points_h'],
         meta_keys=['lidar2img'])
 ]
 
@@ -89,16 +89,21 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
+    dict(  # Filter points not in the range
+        type='PointsBoxFilter',
+        # point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
+        # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
+        point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
+    ),
     # dict(  # Filter points not in the range
     #     type='PointsBoxFilter',
     #     # point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
     #     # point_box_type=((0, 25), (-10, 10), (None, None))
-    #     point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
     # ),
 
     dict(
         type='DTPVPack3DDetInputs',
-        keys=['img', 'points', 'pts_semantic_mask'],
+        keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h', 'points_h'],
         meta_keys=['lidar2img'])
 ]
 
@@ -129,6 +134,7 @@ val_dataloader = dict(
         data_root=data_root,
         data_prefix=data_prefix,
         ann_file='nuscenes_infos_val.pkl',
+        # ann_file='nuscenes_infos_train.pkl',
         pipeline=val_pipeline,
         test_mode=True))
 
@@ -171,7 +177,8 @@ default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=1))
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 # point_cloud_range_h = [-15, -15, -2.5, 15, 15, 1.5]
 point_cloud_range_h = [-18, -18, -2.5, 18, 18, 1.5]
-_dim_ = 128
+# _dim_ = 128
+_dim_ = 256
 num_heads = 8
 _ffn_dim_ = _dim_ * 2
 
@@ -179,7 +186,7 @@ _ffn_dim_ = _dim_ * 2
 # tpv_w_ = 200
 tpv_h_ = 100
 tpv_w_ = 100
-tpv_z_ = 16
+tpv_z_ = 8
 scale_h = 1
 scale_w = 1
 scale_z = 1
@@ -327,7 +334,8 @@ model = dict(
         embed_dims=_dim_,
         positional_encoding=dict(
             type='TPVFormerPositionalEncoding',
-            num_feats=[48, 48, 32],
+            # num_feats=[48, 48, 32],
+            num_feats=[96, 96, 64],
             h=tpv_h_,
             w=tpv_w_,
             z=tpv_z_)),
