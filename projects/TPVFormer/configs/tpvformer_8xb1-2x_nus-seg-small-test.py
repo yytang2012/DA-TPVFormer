@@ -1,9 +1,7 @@
 _base_ = ['../../../configs/_base_/default_runtime.py']
 
 custom_imports = dict(
-    # imports=['projects.TPVFormer.tpvformer'], allow_failed_imports=False)
-    imports=['projects.Double-TPVFormer.doubletpvformer'], allow_failed_imports=False)
-
+    imports=['projects.TPVFormer.tpvformer'], allow_failed_imports=False)
 
 # Configuration for dataset
 dataset_type = 'NuScenesSegDataset'
@@ -36,7 +34,6 @@ train_pipeline = [
         color_type='unchanged',
         num_views=6,
         backend_args=backend_args),
-
     dict(
         type='LoadPointsFromFile',
         coord_type='LIDAR',
@@ -54,16 +51,9 @@ train_pipeline = [
         type='MultiViewWrapper',
         transforms=dict(type='PhotoMetricDistortion3D')),
     dict(type='SegLabelMapping'),
-    dict(  # Filter points not in the range
-        type='PointsBoxFilter',
-        point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
-        # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
-        # point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
-    ),
-
     dict(
-        type='DTPVPack3DDetInputs',
-        keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h', 'points_h'],
+        type='Pack3DDetInputs',
+        keys=['img', 'points', 'pts_semantic_mask'],
         meta_keys=['lidar2img'])
 ]
 
@@ -74,7 +64,6 @@ val_pipeline = [
         color_type='unchanged',
         num_views=6,
         backend_args=backend_args),
-
     dict(
         type='LoadPointsFromFile',
         coord_type='LIDAR',
@@ -89,21 +78,26 @@ val_pipeline = [
         with_attr_label=False,
         seg_3d_dtype='np.uint8'),
     dict(type='SegLabelMapping'),
-    dict(  # Filter points not in the range
-        type='PointsBoxFilter',
-        point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
-        # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
-        # point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
-    ),
+    # dict(  # Filter points not in the range
+    #     type='PointsBoxFilterTest',
+    #     point_box_type=[
+    #         [(-30, 30), (-30, 30), (None, None)],
+    #         [(-51.2, 51.2), (-51.2, 51.2), (None, None)]
+    #     ],
+    # ),
     # dict(  # Filter points not in the range
     #     type='PointsBoxFilter',
-    #     # point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
-    #     # point_box_type=((0, 25), (-10, 10), (None, None))
+    #     point_box_type=((-10, 10), (-10, 10), (None, None)),
+    #     keep_inside=False
     # ),
-
+    dict(  # Filter points not in the range
+        type='PointsBoxFilter',
+        point_box_type=((-10, 10), (-10, 10), (None, None)),
+        keep_inside=True
+    ),
     dict(
-        type='DTPVPack3DDetInputs',
-        keys=['img', 'points', 'pts_semantic_mask', 'pts_semantic_mask_h', 'points_h'],
+        type='Pack3DDetInputs',
+        keys=['img', 'points', 'pts_semantic_mask'],
         meta_keys=['lidar2img'])
 ]
 
@@ -174,16 +168,11 @@ test_cfg = dict(type='TestLoop')
 default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=1))
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-# point_cloud_range_h = [-15, -15, -2.5, 15, 15, 1.5]
-# point_cloud_range_h = [-18, -18, -2.5, 18, 18, 1.5]
-point_cloud_range_h = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
-_dim_ = 128
 # _dim_ = 256
+_dim_ = 128
 num_heads = 8
 _ffn_dim_ = _dim_ * 2
 
-# tpv_h_ = 200
-# tpv_w_ = 200
 tpv_h_ = 100
 tpv_w_ = 100
 tpv_z_ = 8
@@ -264,17 +253,10 @@ model = dict(
         mean=[103.530, 116.280, 123.675],
         std=[1.0, 1.0, 1.0],
         voxel=True,
-        voxel_h=True,
         voxel_type='cylindrical',
         voxel_layer=dict(
             grid_shape=grid_shape,
             point_cloud_range=point_cloud_range,
-            max_num_points=-1,
-            max_voxels=-1,
-        ),
-        voxel_layer_h=dict(
-            grid_shape=grid_shape,
-            point_cloud_range=point_cloud_range_h,
             max_num_points=-1,
             max_voxels=-1,
         ),
@@ -336,6 +318,7 @@ model = dict(
             type='TPVFormerPositionalEncoding',
             num_feats=[48, 48, 32],
             # num_feats=[96, 96, 64],
+
             h=tpv_h_,
             w=tpv_w_,
             z=tpv_z_)),

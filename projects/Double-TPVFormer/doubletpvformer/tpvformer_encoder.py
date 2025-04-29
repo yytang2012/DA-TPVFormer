@@ -256,7 +256,7 @@ class TPVFormerEncoder(TransformerLayerSequence):
 
         return reference_points_cam, tpv_mask
 
-    def forward(self, mlvl_feats, batch_data_samples):
+    def forward(self, mlvl_feats, batch_data_samples, mode='low', tpv_xcy=None):
         """Forward function.
 
         Args:
@@ -275,6 +275,24 @@ class TPVFormerEncoder(TransformerLayerSequence):
         tpv_queries_hw = tpv_queries_hw.unsqueeze(0).repeat(bs, 1, 1)
         tpv_queries_zh = tpv_queries_zh.unsqueeze(0).repeat(bs, 1, 1)
         tpv_queries_wz = tpv_queries_wz.unsqueeze(0).repeat(bs, 1, 1)
+
+        e_dim = tpv_queries_hw.shape[2]
+        if mode == 'low':
+            tpv_queries_hw = tpv_queries_hw.reshape(1, self.tpv_h, self.tpv_w, e_dim)
+            tpv_queries_zh = tpv_queries_zh.reshape(1, self.tpv_z, self.tpv_h, e_dim)
+            tpv_queries_wz = tpv_queries_wz.reshape(1, self.tpv_w, self.tpv_z, e_dim)
+            tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] *= 0.2
+            tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] *= 0.2
+            tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] *= 0.2
+            tpv_xcy_hw = tpv_xcy[0].reshape(1, self.tpv_h // 2, self.tpv_w // 2, e_dim)
+            tpv_xcy_zh = tpv_xcy[1].reshape(1, self.tpv_z // 2, self.tpv_h // 2, e_dim)
+            tpv_xcy_wz = tpv_xcy[2].reshape(1, self.tpv_w // 2, self.tpv_z // 2, e_dim)
+            tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] += (tpv_xcy_hw * 0.8)
+            tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] += (tpv_xcy_zh * 0.8)
+            tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] += (tpv_xcy_wz * 0.8)
+            tpv_queries_hw = tpv_queries_hw.reshape(1, self.tpv_h * self.tpv_w, e_dim)
+            tpv_queries_zh = tpv_queries_zh.reshape(1, self.tpv_z * self.tpv_h, e_dim)
+            tpv_queries_wz = tpv_queries_wz.reshape(1, self.tpv_w * self.tpv_z, e_dim)
         tpv_query = [tpv_queries_hw, tpv_queries_zh, tpv_queries_wz]
 
         tpv_pos_hw = self.positional_encoding(bs, device, 'z')

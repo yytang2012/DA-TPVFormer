@@ -258,3 +258,110 @@ class PointsBoxFilter(BaseTransform):
         repr_str += f'(point_box_type={self.point_box_type}, '
         repr_str += f'keep_inside={self.keep_inside})'
         return repr_str
+
+@TRANSFORMS.register_module()
+class PointsBoxFilterTest(BaseTransform):
+    """Filter points by a 3D box range.
+    Args:
+        point_box_type (tuple): A tuple of three tuples, each containing min and max values
+            for x, y, and z dimensions respectively. Use None for no limit in a dimension.
+            Format: ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+        keep_inside (bool): If True, keep points inside the box. If False, keep points outside the box.
+    """
+
+    def __init__(self, point_box_type, keep_inside=True):
+        self.point_box_type = point_box_type
+        self.keep_inside = keep_inside
+        super().__init__()
+
+    def transform(self, results: dict) -> dict:
+        """Transform function to filter points.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Results after filtering, 'points', 'pts_instance_mask'
+            and 'pts_semantic_mask' keys are updated in the result dict.
+        """
+        points = results['points']
+        coords = points.coord.numpy()
+
+        # Initialize mask as all True
+        mask = np.ones(len(coords), dtype=bool)
+
+        if len(self.point_box_type) == 2:
+            masks = []
+            dimension_mask = np.ones(len(coords), dtype=bool)
+            for i, (min_val, max_val) in enumerate(self.point_box_type[0]):
+                if min_val is not None:
+                    dimension_mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    dimension_mask &= (coords[:, i] < max_val)
+            dimension_mask = ~dimension_mask
+            masks.append(dimension_mask)
+
+            dimension_mask = np.ones(len(coords), dtype=bool)
+            for i, (min_val, max_val) in enumerate(self.point_box_type[1]):
+                if min_val is not None:
+                    dimension_mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    dimension_mask &= (coords[:, i] < max_val)
+            masks.append(dimension_mask)
+            for m in masks:
+                mask &= m
+        else:
+            for i, (min_val, max_val) in enumerate(self.point_box_type[0]):
+                if min_val is not None:
+                    mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    mask &= (coords[:, i] < max_val)
+
+        # Invert mask if we want to keep points outside the box
+        if not self.keep_inside:
+            mask = ~mask
+
+        # Filter points
+        results['points'] = points[mask]
+
+        # Filter instance and semantic masks if they exist
+        if 'pts_instance_mask' in results:
+            results['pts_instance_mask'] = results['pts_instance_mask'][mask]
+
+        if 'pts_semantic_mask' in results:
+            results['pts_semantic_mask'] = results['pts_semantic_mask'][mask]
+            if 'eval_ann_info' in results and 'pts_semantic_mask' in results['eval_ann_info']:
+                results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask'][mask]
+
+        # TODO: Uncomment and adjust this part if you want to filter bounding boxes
+        # if 'gt_bboxes_3d' in results:
+        #     gt_bboxes_3d = results['gt_bboxes_3d']
+        #     gt_labels_3d = results['gt_labels_3d']
+        #
+        #     # Get box centers
+        #     centers = gt_bboxes_3d.gravity_center.numpy()
+        #
+        #     # Initialize box mask as all True
+        #     box_mask = np.ones(len(centers), dtype=bool)
+        #
+        #     # Apply filtering for each dimension
+        #     for i, (min_val, max_val) in enumerate(self.point_box_type):
+        #         if min_val is not None:
+        #             box_mask &= (centers[:, i] >= min_val)
+        #         if max_val is not None:
+        #             box_mask &= (centers[:, i] < max_val)
+        #
+        #     # Invert box_mask if we want to keep boxes outside the specified range
+        #     if not self.keep_inside:
+        #         box_mask = ~box_mask
+        #
+        #     # Filter bounding boxes and labels
+        #     results['gt_bboxes_3d'] = gt_bboxes_3d[box_mask]
+        #     results['gt_labels_3d'] = gt_labels_3d[box_mask]
+
+        return results
+
+    def __repr__(self):
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(point_box_type={self.point_box_type}, '
+        repr_str += f'keep_inside={self.keep_inside})'
+        return repr_str

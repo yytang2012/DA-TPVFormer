@@ -7,7 +7,7 @@ from mmdet3d.registry import MODELS
 from mmdet3d.structures.det3d_data_sample import SampleList
 import copy
 import torch
-
+import torch.nn.functional as F
 @MODELS.register_module()
 class TPVFormer(Base3DSegmentor):
 
@@ -25,9 +25,9 @@ class TPVFormer(Base3DSegmentor):
             self.neck = MODELS.build(neck)
         self.encoder = MODELS.build(encoder)
         encoder_high = copy.deepcopy(encoder)
-        # encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+        encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
         # encoder_high.pc_range = [-15, -15, -2.5, 15, 15, 1.5]
-        encoder_high.pc_range = [-18, -18, -2.5, 18, 18, 1.5]
+        # encoder_high.pc_range = [-18, -18, -2.5, 18, 18, 1.5]
         encoder_high.tpv_h = 100
         encoder_high.tpv_w = 100
         encoder_high.tpv_z = 8
@@ -65,14 +65,35 @@ class TPVFormer(Base3DSegmentor):
 
         return outs_l, outs_h
 
+    def Xcy(self, tpv_list):
+        tpv_hw, tpv_zh, tpv_wz = tpv_list[0], tpv_list[1], tpv_list[2]
+        h, w, z = self.encoder_high.tpv_h, self.encoder_high.tpv_w, self.encoder_high.tpv_z
+        e_dim = tpv_hw.shape[2]
+        tpv_hw = tpv_hw.reshape(1, h, w, e_dim).permute(0, 3, 1, 2)
+        tpv_zh = tpv_zh.reshape(1, z, h, e_dim).permute(0, 3, 1, 2)
+        tpv_wz = tpv_wz.reshape(1, w, z, e_dim).permute(0, 3, 1, 2)
+
+        tpv_hw = F.avg_pool2d(tpv_hw, kernel_size=2, stride=2)
+        tpv_zh = F.avg_pool2d(tpv_zh, kernel_size=2, stride=2)
+        tpv_wz = F.avg_pool2d(tpv_wz, kernel_size=2, stride=2)
+
+        tpv_hw = tpv_hw.reshape(1, e_dim, -1).permute(0, 2, 1)
+        tpv_zh = tpv_zh.reshape(1, e_dim, -1).permute(0, 2, 1)
+        tpv_wz = tpv_wz.reshape(1, e_dim, -1).permute(0, 2, 1)
+        tpv_query = [tpv_hw, tpv_zh, tpv_wz]
+
+        return tpv_query
+
     def loss(self, batch_inputs: dict,
              batch_data_samples: SampleList) -> SampleList:
         img_feats = self.extract_feat(batch_inputs['imgs'])
-
-        # 低分辨率的查询
-        queries = self.encoder(img_feats, batch_data_samples)
         # 高分辨率的查询
-        queries_high_resolution = self.encoder_high(img_feats, batch_data_samples)
+        queries_high_resolution = self.encoder_high(img_feats, batch_data_samples, mode='high')
+        tpv_xcy = self.Xcy(queries_high_resolution)
+        # 低分辨率的查询
+        queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy)
+        # 高分辨率的查询
+        # queries_high_resolution = self.encoder_high(img_feats, batch_data_samples)
         # 低分辨率的损失
         losses_l = self.decode_head.loss(queries, batch_data_samples)
         # 高分辨率的损失
@@ -85,8 +106,6 @@ class TPVFormer(Base3DSegmentor):
                 batch_data_samples: SampleList) -> SampleList:
         """Forward predict function."""
         img_feats = self.extract_feat(batch_inputs['imgs'])
-
-
 
         tpv_queries = self.encoder(img_feats, batch_data_samples)
         tpv_queries_high_resolution = self.encoder_high(img_feats, batch_data_samples)
@@ -111,3 +130,4 @@ class TPVFormer(Base3DSegmentor):
     def encode_decode(self, batch_inputs: dict,
                       batch_data_samples: SampleList) -> SampleList:
         pass
+

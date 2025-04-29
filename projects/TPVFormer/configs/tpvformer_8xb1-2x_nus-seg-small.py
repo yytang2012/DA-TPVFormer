@@ -151,13 +151,14 @@ test_cfg = dict(type='TestLoop')
 default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=1))
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+# _dim_ = 256
 _dim_ = 128
 num_heads = 8
 _ffn_dim_ = _dim_ * 2
 
-tpv_h_ = 200
-tpv_w_ = 200
-tpv_z_ = 16
+tpv_h_ = 75
+tpv_w_ = 75
+tpv_z_ = 8
 scale_h = 1
 scale_w = 1
 scale_z = 1
@@ -299,6 +300,8 @@ model = dict(
         positional_encoding=dict(
             type='TPVFormerPositionalEncoding',
             num_feats=[48, 48, 32],
+            # num_feats=[96, 96, 64],
+
             h=tpv_h_,
             w=tpv_w_,
             z=tpv_z_)),

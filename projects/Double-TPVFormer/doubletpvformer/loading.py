@@ -322,7 +322,174 @@ class PointsBoxFilter(BaseTransform):
         repr_str += f'keep_inside={self.keep_inside})'
         return repr_str
 
+@TRANSFORMS.register_module()
+class PointsBoxFilterTest(BaseTransform):
+    """Filter points by a 3D box range.
+    Args:
+        point_box_type (tuple): A tuple of three tuples, each containing min and max values
+            for x, y, and z dimensions respectively. Use None for no limit in a dimension.
+            Format: ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+        keep_inside (bool): If True, keep points inside the box. If False, keep points outside the box.
+    """
 
+    def __init__(self, point_box_type, pc_range_h):
+        self.point_box_type = point_box_type
+        self.pc_range_h = pc_range_h
+
+        super().__init__()
+
+    def transform(self, results: dict) -> dict:
+        """Transform function to filter points.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Results after filtering, 'points', 'pts_instance_mask'
+            and 'pts_semantic_mask' keys are updated in the result dict.
+        """
+
+        points = results['points']
+        coords = points.coord.numpy()
+
+        # Initialize mask as all True
+        mask = np.ones(len(coords), dtype=bool)
+
+
+        if len(self.point_box_type) == 2:
+            masks = []
+            dimension_mask = np.ones(len(coords), dtype=bool)
+            for i, (min_val, max_val) in enumerate(self.point_box_type[0]):
+                if min_val is not None:
+                    dimension_mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    dimension_mask &= (coords[:, i] < max_val)
+            dimension_mask = ~dimension_mask
+            masks.append(dimension_mask)
+
+            dimension_mask = np.ones(len(coords), dtype=bool)
+            for i, (min_val, max_val) in enumerate(self.point_box_type[1]):
+                if min_val is not None:
+                    dimension_mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    dimension_mask &= (coords[:, i] < max_val)
+            masks.append(dimension_mask)
+            for m in masks:
+                mask &= m
+
+        else:
+            for i, (min_val, max_val) in enumerate(self.point_box_type[0]):
+                if min_val is not None:
+                    mask &= (coords[:, i] >= min_val)
+                if max_val is not None:
+                    mask &= (coords[:, i] < max_val)
+
+        if 'pts_instance_mask' in results:
+            results['pts_instance_mask'] = results['pts_instance_mask'][mask]
+
+        if 'pts_semantic_mask' in results:
+            results['pts_semantic_mask'] = results['pts_semantic_mask'][mask]
+            if 'eval_ann_info' in results and 'pts_semantic_mask' in results['eval_ann_info']:
+                results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask'][mask]
+
+        points = points[mask]
+        coords = points.coord.numpy()
+        mask_2 = np.ones(len(coords), dtype=bool)
+        for i, (min_val, max_val) in enumerate(self.pc_range_h):
+            if min_val is not None:
+                mask_2 &= (coords[:, i] >= min_val)
+            if max_val is not None:
+                mask_2 &= (coords[:, i] < max_val)
+        # Invert mask if we want to keep points outside the box
+        # if not self.keep_inside:
+        mask_l = ~mask_2
+        mask_h = mask_2
+
+        # Filter points
+
+        results['points_l'] = points[mask_l]
+        results['points_h'] = points[mask_h]
+        if results['points_h'].shape[0] == 0:
+            results['points'] = results['points_l']
+        if results['points_l'].shape[0] == 0:
+            results['points'] = results['points_h']
+        if results['points_h'].shape[0] != 0 and results['points_l'].shape[0] != 0:
+            merge_results = np.concatenate(
+                (results['points_h'], results['points_l']), axis=0
+            )
+            results['points'] = LiDARPoints(merge_results)
+
+
+
+        # Filter instance and semantic masks if they exist
+        if 'pts_instance_mask' in results:
+            results['pts_instance_mask_h'] = results['pts_instance_mask'][mask_h]
+            results['pts_instance_mask_l'] = results['pts_instance_mask'][mask_l]
+            if len(results['pts_instance_mask_h']) == 0:
+                results['pts_instance_mask'] = results['pts_instance_mask_l']
+            if len(results['pts_instance_mask_l']) == 0:
+                results['pts_instance_mask'] = results['pts_instance_mask_h']
+            if len(results['pts_instance_mask_l']) != 0 and len(results['pts_instance_mask_h']) != 0:
+                results['pts_instance_mask'] = np.concatenate(
+                    (results['pts_instance_mask_h'], results['pts_instance_mask_l']), axis=0
+                )
+
+        if 'pts_semantic_mask' in results:
+            results['pts_semantic_mask_h'] = results['pts_semantic_mask'][mask_h]
+            results['pts_semantic_mask_l'] = results['pts_semantic_mask'][mask_l]
+            if len(results['pts_semantic_mask_h']) == 0:
+                results['pts_semantic_mask'] = results['pts_semantic_mask_l']
+            if len(results['pts_semantic_mask_l']) == 0:
+                results['pts_semantic_mask'] = results['pts_semantic_mask_h']
+            if len(results['pts_semantic_mask_l']) != 0 and len(results['pts_semantic_mask_h']) != 0:
+                results['pts_semantic_mask'] = np.concatenate(
+                    (results['pts_semantic_mask_h'], results['pts_semantic_mask_l']), axis=0
+                )
+
+            if 'eval_ann_info' in results and 'pts_semantic_mask' in results['eval_ann_info']:
+                results['eval_ann_info']['pts_semantic_mask_h'] = results['eval_ann_info']['pts_semantic_mask'][mask_h]
+                results['eval_ann_info']['pts_semantic_mask_l'] = results['eval_ann_info']['pts_semantic_mask'][mask_l]
+                if len(results['eval_ann_info']['pts_semantic_mask_h']) == 0:
+                    results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask_l']
+                if len(results['eval_ann_info']['pts_semantic_mask_l']) == 0:
+                    results['eval_ann_info']['pts_semantic_mask'] = results['eval_ann_info']['pts_semantic_mask_h']
+                if len(results['eval_ann_info']['pts_semantic_mask_l']) != 0 and len(results['eval_ann_info']['pts_semantic_mask_h']) != 0:
+                    results['eval_ann_info']['pts_semantic_mask'] = np.concatenate(
+                        (results['eval_ann_info']['pts_semantic_mask_h'], results['eval_ann_info']['pts_semantic_mask_l']), axis=0
+                    )
+
+        # TODO: Uncomment and adjust this part if you want to filter bounding boxes
+        # if 'gt_bboxes_3d' in results:
+        #     gt_bboxes_3d = results['gt_bboxes_3d']
+        #     gt_labels_3d = results['gt_labels_3d']
+        #
+        #     # Get box centers
+        #     centers = gt_bboxes_3d.gravity_center.numpy()
+        #
+        #     # Initialize box mask as all True
+        #     box_mask = np.ones(len(centers), dtype=bool)
+        #
+        #     # Apply filtering for each dimension
+        #     for i, (min_val, max_val) in enumerate(self.point_box_type):
+        #         if min_val is not None:
+        #             box_mask &= (centers[:, i] >= min_val)
+        #         if max_val is not None:
+        #             box_mask &= (centers[:, i] < max_val)
+        #
+        #     # Invert box_mask if we want to keep boxes outside the specified range
+        #     if not self.keep_inside:
+        #         box_mask = ~box_mask
+        #
+        #     # Filter bounding boxes and labels
+        #     results['gt_bboxes_3d'] = gt_bboxes_3d[box_mask]
+        #     results['gt_labels_3d'] = gt_labels_3d[box_mask]
+
+        return results
+
+    def __repr__(self):
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(point_box_type={self.point_box_type}, '
+        repr_str += f'keep_inside={self.keep_inside})'
+        return repr_str
 
 @TRANSFORMS.register_module()
 class DTPVPack3DDetInputs(Pack3DDetInputs):
