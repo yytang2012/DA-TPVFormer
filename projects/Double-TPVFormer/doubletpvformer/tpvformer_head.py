@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mmengine.model import BaseModule
+from torch.cuda import device
 
 from mmdet3d.registry import MODELS
-
+import numpy as np
 
 @MODELS.register_module()
 class TPVFormerDecoder(BaseModule):
@@ -234,7 +235,329 @@ class TPVFormerDecoder(BaseModule):
 
             return logits
 
-    def predict(self, tpv_list, batch_data_samples):
+    # def predict(self, tpv_list, batch_data_samples):
+    #     """
+    #     tpv_list[0]: bs, h*w, c
+    #     tpv_list[1]: bs, z*h, c
+    #     tpv_list[2]: bs, w*z, c
+    #     """
+    #     tpv_hw, tpv_zh, tpv_wz = tpv_list
+    #     bs, _, c = tpv_hw.shape
+    #     tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+    #     tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+    #     tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+    #
+    #     if self.scale_h != 1 or self.scale_w != 1:
+    #         tpv_hw = F.interpolate(
+    #             tpv_hw,
+    #             size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+    #             mode='bilinear')
+    #     if self.scale_z != 1 or self.scale_h != 1:
+    #         tpv_zh = F.interpolate(
+    #             tpv_zh,
+    #             size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+    #             mode='bilinear')
+    #     if self.scale_w != 1 or self.scale_z != 1:
+    #         tpv_wz = F.interpolate(
+    #             tpv_wz,
+    #             size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+    #             mode='bilinear')
+    #
+    #     logits = []
+    #     for i, data_sample in enumerate(batch_data_samples):
+    #         point_coors = data_sample.point_coors.reshape(1, 1, -1, 3).float()
+    #         point_coors[
+    #             ...,
+    #             0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+    #         sample_loc = point_coors[..., [0, 1]]
+    #         tpv_hw_pts = F.grid_sample(
+    #             tpv_hw[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [1, 2]]
+    #         tpv_zh_pts = F.grid_sample(
+    #             tpv_zh[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [2, 0]]
+    #         tpv_wz_pts = F.grid_sample(
+    #             tpv_wz[i:i + 1], sample_loc, align_corners=False)
+    #
+    #         fused_pts = tpv_hw_pts + tpv_zh_pts + tpv_wz_pts
+    #
+    #         fused_pts = fused_pts.squeeze(0).squeeze(1).transpose(0, 1)
+    #         fused_pts = self.decoder(fused_pts)
+    #         logit = self.classifier(fused_pts)
+    #         logits.append(logit)
+    #
+    #     return logits
+    #
+    # def loss(self, tpv_list, batch_data_samples):
+    #     tpv_hw, tpv_zh, tpv_wz = tpv_list
+    #     bs, _, c = tpv_hw.shape
+    #     tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+    #     tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+    #     tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+    #
+    #     if self.scale_h != 1 or self.scale_w != 1:
+    #         tpv_hw = F.interpolate(
+    #             tpv_hw,
+    #             size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+    #             mode='bilinear')
+    #     if self.scale_z != 1 or self.scale_h != 1:
+    #         tpv_zh = F.interpolate(
+    #             tpv_zh,
+    #             size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+    #             mode='bilinear')
+    #     if self.scale_w != 1 or self.scale_z != 1:
+    #         tpv_wz = F.interpolate(
+    #             tpv_wz,
+    #             size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+    #             mode='bilinear')
+    #
+    #     batch_pts, batch_vox = [], []
+    #     for i, data_sample in enumerate(batch_data_samples):
+    #         point_coors = data_sample.point_coors.reshape(1, 1, -1, 3).float()
+    #
+    #         point_coors[
+    #             ...,
+    #             0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+    #         sample_loc = point_coors[..., [0, 1]]
+    #         tpv_hw_pts = F.grid_sample(
+    #             tpv_hw[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [1, 2]]
+    #         tpv_zh_pts = F.grid_sample(
+    #             tpv_zh[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [2, 0]]
+    #         tpv_wz_pts = F.grid_sample(
+    #             tpv_wz[i:i + 1], sample_loc, align_corners=False)
+    #         fused_pts = (tpv_hw_pts + tpv_zh_pts +
+    #                      tpv_wz_pts).squeeze(0).squeeze(1)
+    #         batch_pts.append(fused_pts)
+    #
+    #         tpv_hw_vox = tpv_hw.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
+    #             -1, -1, -1, -1, self.scale_z * self.tpv_z)
+    #         tpv_zh_vox = tpv_zh.unsqueeze(-1).permute(0, 1, 4, 3, 2).expand(
+    #             -1, -1, self.scale_w * self.tpv_w, -1, -1)
+    #         tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
+    #             -1, -1, -1, self.scale_h * self.tpv_h, -1)
+    #         fused_vox = tpv_hw_vox + tpv_zh_vox + tpv_wz_vox
+    #         voxel_coors = data_sample.voxel_coors.long()
+    #         fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
+    #                               voxel_coors[:, 2]]
+    #         fused_vox = fused_vox.squeeze(0)
+    #         batch_vox.append(fused_vox)
+    #     batch_pts = torch.cat(batch_pts, dim=1)
+    #     batch_vox = torch.cat(batch_vox, dim=1)
+    #     num_points = batch_pts.shape[1]
+    #
+    #     logits = self.decoder(
+    #         torch.cat([batch_pts, batch_vox], dim=1).transpose(0, 1))
+    #     logits = self.classifier(logits)
+    #     pts_logits = logits[:num_points, :]
+    #     vox_logits = logits[num_points:, :]
+    #
+    #     pts_seg_label = torch.cat([
+    #         data_sample.gt_pts_seg.pts_semantic_mask
+    #         for data_sample in batch_data_samples
+    #     ])
+    #
+    #     voxel_seg_label = torch.cat([
+    #         data_sample.gt_pts_seg.voxel_semantic_mask
+    #         for data_sample in batch_data_samples
+    #     ])
+    #
+    #
+    #     if self.ce_input == 'voxel':
+    #         ce_input = vox_logits
+    #         ce_label = voxel_seg_label
+    #     else:
+    #         ce_input = pts_logits
+    #         ce_label = pts_seg_label
+    #     if self.lovasz_input == 'voxel':
+    #         lovasz_input = vox_logits
+    #         lovasz_label = voxel_seg_label
+    #     else:
+    #         lovasz_input = pts_logits
+    #         lovasz_label = pts_seg_label
+    #
+    #     loss = dict()
+    #     loss['loss_ce_l'] = self.loss_ce(
+    #         ce_input, ce_label, ignore_index=self.ignore_index)
+    #     loss['loss_lovasz_l'] = self.loss_lovasz(
+    #         lovasz_input, lovasz_label, ignore_index=self.ignore_index)
+    #     return loss
+    #
+    # def predict_h(self, tpv_list, batch_data_samples):
+    #     """
+    #     tpv_list[0]: bs, h*w, c
+    #     tpv_list[1]: bs, z*h, c
+    #     tpv_list[2]: bs, w*z, c
+    #     """
+    #     tpv_hw, tpv_zh, tpv_wz = tpv_list
+    #     bs, _, c = tpv_hw.shape
+    #     tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+    #     tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+    #     tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+    #
+    #     if self.scale_h != 1 or self.scale_w != 1:
+    #         tpv_hw = F.interpolate(
+    #             tpv_hw,
+    #             size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+    #             mode='bilinear')
+    #     if self.scale_z != 1 or self.scale_h != 1:
+    #         tpv_zh = F.interpolate(
+    #             tpv_zh,
+    #             size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+    #             mode='bilinear')
+    #     if self.scale_w != 1 or self.scale_z != 1:
+    #         tpv_wz = F.interpolate(
+    #             tpv_wz,
+    #             size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+    #             mode='bilinear')
+    #
+    #     logits = []
+    #     for i, data_sample in enumerate(batch_data_samples):
+    #         point_coors = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
+    #         point_coors[
+    #             ...,
+    #             0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+    #         sample_loc = point_coors[..., [0, 1]]
+    #         tpv_hw_pts = F.grid_sample(
+    #             tpv_hw[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [1, 2]]
+    #         tpv_zh_pts = F.grid_sample(
+    #             tpv_zh[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [2, 0]]
+    #         tpv_wz_pts = F.grid_sample(
+    #             tpv_wz[i:i + 1], sample_loc, align_corners=False)
+    #
+    #         fused_pts = tpv_hw_pts + tpv_zh_pts + tpv_wz_pts
+    #
+    #         fused_pts = fused_pts.squeeze(0).squeeze(1).transpose(0, 1)
+    #         fused_pts = self.decoder(fused_pts)
+    #         logit = self.classifier(fused_pts)
+    #         logits.append(logit)
+    #
+    #     return logits
+    #
+    # def loss_h(self, tpv_list, batch_data_samples):
+    #     tpv_hw, tpv_zh, tpv_wz = tpv_list
+    #     bs, _, c = tpv_hw.shape
+    #     tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+    #     tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+    #     tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+    #
+    #     if self.scale_h != 1 or self.scale_w != 1:
+    #         tpv_hw = F.interpolate(
+    #             tpv_hw,
+    #             size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+    #             mode='bilinear')
+    #     if self.scale_z != 1 or self.scale_h != 1:
+    #         tpv_zh = F.interpolate(
+    #             tpv_zh,
+    #             size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+    #             mode='bilinear')
+    #     if self.scale_w != 1 or self.scale_z != 1:
+    #         tpv_wz = F.interpolate(
+    #             tpv_wz,
+    #             size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+    #             mode='bilinear')
+    #
+    #     batch_pts, batch_vox = [], []
+    #     for i, data_sample in enumerate(batch_data_samples):
+    #         point_coors = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
+    #
+    #         point_coors[
+    #             ...,
+    #             0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+    #         point_coors[
+    #             ...,
+    #             2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+    #         sample_loc = point_coors[..., [0, 1]]
+    #         tpv_hw_pts = F.grid_sample(
+    #             tpv_hw[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [1, 2]]
+    #         tpv_zh_pts = F.grid_sample(
+    #             tpv_zh[i:i + 1], sample_loc, align_corners=False)
+    #         sample_loc = point_coors[..., [2, 0]]
+    #         tpv_wz_pts = F.grid_sample(
+    #             tpv_wz[i:i + 1], sample_loc, align_corners=False)
+    #         fused_pts = (tpv_hw_pts + tpv_zh_pts +
+    #                      tpv_wz_pts).squeeze(0).squeeze(1)
+    #         batch_pts.append(fused_pts)
+    #
+    #         tpv_hw_vox = tpv_hw.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
+    #             -1, -1, -1, -1, self.scale_z * self.tpv_z)
+    #         tpv_zh_vox = tpv_zh.unsqueeze(-1).permute(0, 1, 4, 3, 2).expand(
+    #             -1, -1, self.scale_w * self.tpv_w, -1, -1)
+    #         tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
+    #             -1, -1, -1, self.scale_h * self.tpv_h, -1)
+    #         fused_vox = tpv_hw_vox + tpv_zh_vox + tpv_wz_vox
+    #         voxel_coors = data_sample.voxel_coors_h.long()
+    #         fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
+    #                     voxel_coors[:, 2]]
+    #         fused_vox = fused_vox.squeeze(0)
+    #         batch_vox.append(fused_vox)
+    #     batch_pts = torch.cat(batch_pts, dim=1)
+    #     batch_vox = torch.cat(batch_vox, dim=1)
+    #     num_points = batch_pts.shape[1]
+    #
+    #     logits = self.decoder(
+    #         torch.cat([batch_pts, batch_vox], dim=1).transpose(0, 1))
+    #     logits = self.classifier(logits)
+    #     pts_logits = logits[:num_points, :]
+    #     vox_logits = logits[num_points:, :]
+    #
+    #
+    #     pts_seg_label = torch.cat([
+    #         data_sample.gt_pts_seg.pts_semantic_mask_h
+    #         for data_sample in batch_data_samples
+    #     ])
+    #
+    #     voxel_seg_label = torch.cat([
+    #         data_sample.gt_pts_seg.voxel_semantic_mask_h
+    #         for data_sample in batch_data_samples
+    #     ])
+    #
+    #     if self.ce_input == 'voxel':
+    #         ce_input = vox_logits
+    #         ce_label = voxel_seg_label
+    #     else:
+    #         ce_input = pts_logits
+    #         ce_label = pts_seg_label
+    #     if self.lovasz_input == 'voxel':
+    #         lovasz_input = vox_logits
+    #         lovasz_label = voxel_seg_label
+    #     else:
+    #         lovasz_input = pts_logits
+    #         lovasz_label = pts_seg_label
+    #
+    #     loss = dict()
+    #     loss['loss_ce_h'] = self.loss_ce(
+    #         ce_input, ce_label, ignore_index=self.ignore_index)
+    #     loss['loss_lovasz_h'] = self.loss_lovasz(
+    #         lovasz_input, lovasz_label, ignore_index=self.ignore_index)
+    #     return loss
+
+    def predict(self, tpv_list, tpv_list_h, batch_data_samples, miu=0.25):
         """
         tpv_list[0]: bs, h*w, c
         tpv_list[1]: bs, z*h, c
@@ -246,9 +569,19 @@ class TPVFormerDecoder(BaseModule):
         tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
         tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
 
+        tpv_hw_h, tpv_zh_h, tpv_wz_h = tpv_list_h
+        bs, _, c = tpv_hw_h.shape
+        tpv_hw_h = tpv_hw_h.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+        tpv_zh_h = tpv_zh_h.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+        tpv_wz_h = tpv_wz_h.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+
         if self.scale_h != 1 or self.scale_w != 1:
             tpv_hw = F.interpolate(
                 tpv_hw,
+                size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+                mode='bilinear')
+            tpv_hw_h = F.interpolate(
+                tpv_hw_h,
                 size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
                 mode='bilinear')
         if self.scale_z != 1 or self.scale_h != 1:
@@ -256,9 +589,17 @@ class TPVFormerDecoder(BaseModule):
                 tpv_zh,
                 size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
                 mode='bilinear')
+            tpv_zh_h = F.interpolate(
+                tpv_zh_h,
+                size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+                mode='bilinear')
         if self.scale_w != 1 or self.scale_z != 1:
             tpv_wz = F.interpolate(
                 tpv_wz,
+                size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+                mode='bilinear')
+            tpv_wz_h = F.interpolate(
+                tpv_wz_h,
                 size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
                 mode='bilinear')
 
@@ -284,7 +625,30 @@ class TPVFormerDecoder(BaseModule):
             tpv_wz_pts = F.grid_sample(
                 tpv_wz[i:i + 1], sample_loc, align_corners=False)
 
+            point_coors_h = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
+            len_high = point_coors_h.shape[2]
+            point_coors_h[
+                ...,
+                0] = point_coors_h[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+            point_coors_h[
+                ...,
+                1] = point_coors_h[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+            point_coors_h[
+                ...,
+                2] = point_coors_h[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+            sample_loc_h = point_coors_h[..., [0, 1]]
+            tpv_hw_pts_h = F.grid_sample(
+                tpv_hw_h[i:i + 1], sample_loc_h, align_corners=False)
+            sample_loc_h = point_coors_h[..., [1, 2]]
+            tpv_zh_pts_h = F.grid_sample(
+                tpv_zh_h[i:i + 1], sample_loc_h, align_corners=False)
+            sample_loc_h = point_coors_h[..., [2, 0]]
+            tpv_wz_pts_h = F.grid_sample(
+                tpv_wz_h[i:i + 1], sample_loc_h, align_corners=False)
             fused_pts = tpv_hw_pts + tpv_zh_pts + tpv_wz_pts
+            fused_pts[..., :len_high] = (miu * (tpv_hw_pts[..., :len_high] + tpv_zh_pts[..., :len_high] + tpv_wz_pts[..., :len_high]) +
+                                         (1 - miu) * (tpv_hw_pts_h + tpv_zh_pts_h + tpv_wz_pts_h))
+
 
             fused_pts = fused_pts.squeeze(0).squeeze(1).transpose(0, 1)
             fused_pts = self.decoder(fused_pts)
@@ -293,16 +657,28 @@ class TPVFormerDecoder(BaseModule):
 
         return logits
 
-    def loss(self, tpv_list, batch_data_samples):
+
+
+    def loss(self, tpv_list, tpv_list_h, batch_data_samples, miu=0.25):
         tpv_hw, tpv_zh, tpv_wz = tpv_list
         bs, _, c = tpv_hw.shape
         tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
         tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
         tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
 
+        tpv_hw_h, tpv_zh_h, tpv_wz_h = tpv_list_h
+        bs, _, c = tpv_hw_h.shape
+        tpv_hw_h = tpv_hw_h.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
+        tpv_zh_h = tpv_zh_h.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
+        tpv_wz_h = tpv_wz_h.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
+
         if self.scale_h != 1 or self.scale_w != 1:
             tpv_hw = F.interpolate(
                 tpv_hw,
+                size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
+                mode='bilinear')
+            tpv_hw_h = F.interpolate(
+                tpv_hw_h,
                 size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
                 mode='bilinear')
         if self.scale_z != 1 or self.scale_h != 1:
@@ -310,16 +686,23 @@ class TPVFormerDecoder(BaseModule):
                 tpv_zh,
                 size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
                 mode='bilinear')
+            tpv_zh_h = F.interpolate(
+                tpv_zh_h,
+                size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
+                mode='bilinear')
         if self.scale_w != 1 or self.scale_z != 1:
             tpv_wz = F.interpolate(
                 tpv_wz,
+                size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
+                mode='bilinear')
+            tpv_wz_h = F.interpolate(
+                tpv_wz_h,
                 size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
                 mode='bilinear')
 
         batch_pts, batch_vox = [], []
         for i, data_sample in enumerate(batch_data_samples):
             point_coors = data_sample.point_coors.reshape(1, 1, -1, 3).float()
-
             point_coors[
                 ...,
                 0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
@@ -338,8 +721,32 @@ class TPVFormerDecoder(BaseModule):
             sample_loc = point_coors[..., [2, 0]]
             tpv_wz_pts = F.grid_sample(
                 tpv_wz[i:i + 1], sample_loc, align_corners=False)
-            fused_pts = (tpv_hw_pts + tpv_zh_pts +
-                         tpv_wz_pts).squeeze(0).squeeze(1)
+
+            point_coors_h = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
+            len_high = point_coors_h.shape[2]
+            point_coors_h[
+                ...,
+                0] = point_coors_h[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
+            point_coors_h[
+                ...,
+                1] = point_coors_h[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
+            point_coors_h[
+                ...,
+                2] = point_coors_h[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
+            sample_loc_h = point_coors_h[..., [0, 1]]
+            tpv_hw_pts_h = F.grid_sample(
+                tpv_hw_h[i:i + 1], sample_loc_h, align_corners=False)
+            sample_loc_h = point_coors_h[..., [1, 2]]
+            tpv_zh_pts_h = F.grid_sample(
+                tpv_zh_h[i:i + 1], sample_loc_h, align_corners=False)
+            sample_loc_h = point_coors_h[..., [2, 0]]
+            tpv_wz_pts_h = F.grid_sample(
+                tpv_wz_h[i:i + 1], sample_loc_h, align_corners=False)
+            fused_pts = tpv_hw_pts + tpv_zh_pts + tpv_wz_pts
+            fused_pts[..., :len_high] = (
+                        miu * (tpv_hw_pts[..., :len_high] + tpv_zh_pts[..., :len_high] + tpv_wz_pts[..., :len_high]) +
+                        (1 - miu) * (tpv_hw_pts_h + tpv_zh_pts_h + tpv_wz_pts_h))
+            fused_pts = fused_pts.squeeze(0).squeeze(1)
             batch_pts.append(fused_pts)
 
             tpv_hw_vox = tpv_hw.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
@@ -348,10 +755,67 @@ class TPVFormerDecoder(BaseModule):
                 -1, -1, self.scale_w * self.tpv_w, -1, -1)
             tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
                 -1, -1, -1, self.scale_h * self.tpv_h, -1)
-            fused_vox = tpv_hw_vox + tpv_zh_vox + tpv_wz_vox
+            tpv_hw_vox_upsampled = F.interpolate(
+                tpv_hw_vox, size=(self.tpv_h * 2, self.tpv_w * 2, self.tpv_z * 2), mode='trilinear', align_corners=False)
+            tpv_zh_vox_upsampled = F.interpolate(
+                tpv_zh_vox, size=(self.tpv_h * 2, self.tpv_w * 2, self.tpv_z * 2), mode='trilinear', align_corners=False)
+            tpv_wz_vox_upsampled = F.interpolate(
+                tpv_wz_vox, size=(self.tpv_h * 2, self.tpv_w * 2, self.tpv_z * 2), mode='trilinear', align_corners=False)
             voxel_coors = data_sample.voxel_coors.long()
+            voxel_coors_upsampled = self.expand_voxel_coors(voxel_coors, scale=2)
+
+            fused_vox = tpv_hw_vox_upsampled + tpv_zh_vox_upsampled + tpv_wz_vox_upsampled
+
+            tpv_hw_vox_h = tpv_hw_h.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
+                -1, -1, -1, -1, self.scale_z * self.tpv_z)
+            tpv_zh_vox_h = tpv_zh_h.unsqueeze(-1).permute(0, 1, 4, 3, 2).expand(
+                -1, -1, self.scale_w * self.tpv_w, -1, -1)
+            tpv_wz_vox_h = tpv_wz_h.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
+                -1, -1, -1, self.scale_h * self.tpv_h, -1)
+
+
+            fused_vox_high = tpv_hw_vox_h + tpv_zh_vox_h + tpv_wz_vox_h
+
+            voxel_coors_h = data_sample.voxel_coors_h.long()
+            h_start = self.tpv_h // 2  # = 50
+            w_start = self.tpv_w // 2  # = 50
+            z_start = self.tpv_z // 2  # = 4
+            fused_vox[:, :, h_start : h_start + self.tpv_h, w_start : w_start + self.tpv_w, z_start : z_start + self.tpv_z] = (
+                    miu * fused_vox[:, :, h_start : h_start + self.tpv_h, w_start : w_start + self.tpv_w, z_start : z_start + self.tpv_z]) + (i - miu) * fused_vox_high
+
+            voxel_labels = data_sample.gt_pts_seg.voxel_semantic_mask
+            voxel_labels_h = data_sample.gt_pts_seg.voxel_semantic_mask_h
+            voxel_labels_upsampled = voxel_labels.repeat_interleave(8)
+            voxel_labels_upsampled = voxel_labels_upsampled.unsqueeze(1)
+            voxel_labels_h = voxel_labels_h.unsqueeze(1)
+            combined_v = torch.cat([voxel_coors_upsampled, voxel_labels_upsampled], dim=1)
+            combined_vh = torch.cat([voxel_coors_h, voxel_labels_h], dim=1)
+            b_dict = {tuple(row[:3].tolist()): row[3].item() for row in combined_vh}
+
+            existing_keys = set()
+            for i in range(combined_v.shape[0]):
+                key = tuple(combined_v[i, :3].tolist())
+                existing_keys.add(key)
+                if key in b_dict:
+                    combined_v[i, 3] = b_dict[key]
+            # 找到 combined_vh 中的“不重复”点并收集它们
+            new_rows = []
+            for i in range(combined_vh.shape[0]):
+                key = tuple(combined_vh[i, :3].tolist())
+                if key not in existing_keys:
+                    new_rows.append(combined_vh[i].unsqueeze(0))  # 保持维度 [1, 4]
+
+            # 如果有新点，就拼接它们
+            if new_rows:
+                new_tensor = torch.cat(new_rows, dim=0)
+                combined_v = torch.cat([combined_v, new_tensor], dim=0)
+            voxel_coors = combined_v[:, :3]
+            voxel_labels = combined_v[:, 3]
+            data_sample.gt_pts_seg.voxel_semantic_mask = voxel_labels
+            data_sample.voxel_coors = voxel_coors
+
             fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
-                                  voxel_coors[:, 2]]
+                        voxel_coors[:, 2]]
             fused_vox = fused_vox.squeeze(0)
             batch_vox.append(fused_vox)
         batch_pts = torch.cat(batch_pts, dim=1)
@@ -374,7 +838,6 @@ class TPVFormerDecoder(BaseModule):
             for data_sample in batch_data_samples
         ])
 
-
         if self.ce_input == 'voxel':
             ce_input = vox_logits
             ce_label = voxel_seg_label
@@ -389,170 +852,18 @@ class TPVFormerDecoder(BaseModule):
             lovasz_label = pts_seg_label
 
         loss = dict()
-        loss['loss_ce_l'] = self.loss_ce(
+        loss['loss_ce'] = self.loss_ce(
             ce_input, ce_label, ignore_index=self.ignore_index)
-        loss['loss_lovasz_l'] = self.loss_lovasz(
+        loss['loss_lovasz'] = self.loss_lovasz(
             lovasz_input, lovasz_label, ignore_index=self.ignore_index)
         return loss
 
-    def predict_h(self, tpv_list, batch_data_samples):
-        """
-        tpv_list[0]: bs, h*w, c
-        tpv_list[1]: bs, z*h, c
-        tpv_list[2]: bs, w*z, c
-        """
-        tpv_hw, tpv_zh, tpv_wz = tpv_list
-        bs, _, c = tpv_hw.shape
-        tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
-        tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
-        tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
-
-        if self.scale_h != 1 or self.scale_w != 1:
-            tpv_hw = F.interpolate(
-                tpv_hw,
-                size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
-                mode='bilinear')
-        if self.scale_z != 1 or self.scale_h != 1:
-            tpv_zh = F.interpolate(
-                tpv_zh,
-                size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
-                mode='bilinear')
-        if self.scale_w != 1 or self.scale_z != 1:
-            tpv_wz = F.interpolate(
-                tpv_wz,
-                size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
-                mode='bilinear')
-
-        logits = []
-        for i, data_sample in enumerate(batch_data_samples):
-            point_coors = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
-            point_coors[
-                ...,
-                0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
-            point_coors[
-                ...,
-                1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
-            point_coors[
-                ...,
-                2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
-            sample_loc = point_coors[..., [0, 1]]
-            tpv_hw_pts = F.grid_sample(
-                tpv_hw[i:i + 1], sample_loc, align_corners=False)
-            sample_loc = point_coors[..., [1, 2]]
-            tpv_zh_pts = F.grid_sample(
-                tpv_zh[i:i + 1], sample_loc, align_corners=False)
-            sample_loc = point_coors[..., [2, 0]]
-            tpv_wz_pts = F.grid_sample(
-                tpv_wz[i:i + 1], sample_loc, align_corners=False)
-
-            fused_pts = tpv_hw_pts + tpv_zh_pts + tpv_wz_pts
-
-            fused_pts = fused_pts.squeeze(0).squeeze(1).transpose(0, 1)
-            fused_pts = self.decoder(fused_pts)
-            logit = self.classifier(fused_pts)
-            logits.append(logit)
-
-        return logits
-
-    def loss_h(self, tpv_list, batch_data_samples):
-        tpv_hw, tpv_zh, tpv_wz = tpv_list
-        bs, _, c = tpv_hw.shape
-        tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
-        tpv_zh = tpv_zh.permute(0, 2, 1).reshape(bs, c, self.tpv_z, self.tpv_h)
-        tpv_wz = tpv_wz.permute(0, 2, 1).reshape(bs, c, self.tpv_w, self.tpv_z)
-
-        if self.scale_h != 1 or self.scale_w != 1:
-            tpv_hw = F.interpolate(
-                tpv_hw,
-                size=(self.tpv_h * self.scale_h, self.tpv_w * self.scale_w),
-                mode='bilinear')
-        if self.scale_z != 1 or self.scale_h != 1:
-            tpv_zh = F.interpolate(
-                tpv_zh,
-                size=(self.tpv_z * self.scale_z, self.tpv_h * self.scale_h),
-                mode='bilinear')
-        if self.scale_w != 1 or self.scale_z != 1:
-            tpv_wz = F.interpolate(
-                tpv_wz,
-                size=(self.tpv_w * self.scale_w, self.tpv_z * self.scale_z),
-                mode='bilinear')
-
-        batch_pts, batch_vox = [], []
-        for i, data_sample in enumerate(batch_data_samples):
-            point_coors = data_sample.point_coors_h.reshape(1, 1, -1, 3).float()
-
-            point_coors[
-                ...,
-                0] = point_coors[..., 0] / (self.tpv_w * self.scale_w) * 2 - 1
-            point_coors[
-                ...,
-                1] = point_coors[..., 1] / (self.tpv_h * self.scale_h) * 2 - 1
-            point_coors[
-                ...,
-                2] = point_coors[..., 2] / (self.tpv_z * self.scale_z) * 2 - 1
-            sample_loc = point_coors[..., [0, 1]]
-            tpv_hw_pts = F.grid_sample(
-                tpv_hw[i:i + 1], sample_loc, align_corners=False)
-            sample_loc = point_coors[..., [1, 2]]
-            tpv_zh_pts = F.grid_sample(
-                tpv_zh[i:i + 1], sample_loc, align_corners=False)
-            sample_loc = point_coors[..., [2, 0]]
-            tpv_wz_pts = F.grid_sample(
-                tpv_wz[i:i + 1], sample_loc, align_corners=False)
-            fused_pts = (tpv_hw_pts + tpv_zh_pts +
-                         tpv_wz_pts).squeeze(0).squeeze(1)
-            batch_pts.append(fused_pts)
-
-            tpv_hw_vox = tpv_hw.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
-                -1, -1, -1, -1, self.scale_z * self.tpv_z)
-            tpv_zh_vox = tpv_zh.unsqueeze(-1).permute(0, 1, 4, 3, 2).expand(
-                -1, -1, self.scale_w * self.tpv_w, -1, -1)
-            tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
-                -1, -1, -1, self.scale_h * self.tpv_h, -1)
-            fused_vox = tpv_hw_vox + tpv_zh_vox + tpv_wz_vox
-            voxel_coors = data_sample.voxel_coors_h.long()
-            fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
-                        voxel_coors[:, 2]]
-            fused_vox = fused_vox.squeeze(0)
-            batch_vox.append(fused_vox)
-        batch_pts = torch.cat(batch_pts, dim=1)
-        batch_vox = torch.cat(batch_vox, dim=1)
-        num_points = batch_pts.shape[1]
-
-        logits = self.decoder(
-            torch.cat([batch_pts, batch_vox], dim=1).transpose(0, 1))
-        logits = self.classifier(logits)
-        pts_logits = logits[:num_points, :]
-        vox_logits = logits[num_points:, :]
-
-
-        pts_seg_label = torch.cat([
-            data_sample.gt_pts_seg.pts_semantic_mask_h
-            for data_sample in batch_data_samples
-        ])
-
-        voxel_seg_label = torch.cat([
-            data_sample.gt_pts_seg.voxel_semantic_mask_h
-            for data_sample in batch_data_samples
-        ])
-
-        if self.ce_input == 'voxel':
-            ce_input = vox_logits
-            ce_label = voxel_seg_label
-        else:
-            ce_input = pts_logits
-            ce_label = pts_seg_label
-        if self.lovasz_input == 'voxel':
-            lovasz_input = vox_logits
-            lovasz_label = voxel_seg_label
-        else:
-            lovasz_input = pts_logits
-            lovasz_label = pts_seg_label
-
-        loss = dict()
-        loss['loss_ce_h'] = self.loss_ce(
-            ce_input, ce_label, ignore_index=self.ignore_index)
-        loss['loss_lovasz_h'] = self.loss_lovasz(
-            lovasz_input, lovasz_label, ignore_index=self.ignore_index)
-        return loss
-
+    def expand_voxel_coors(self, coors, scale=2):
+        new_coors = []
+        for x, y, z in coors:
+            for dx in range(scale):
+                for dy in range(scale):
+                    for dz in range(scale):
+                        new_coors.append([x * scale + dx, y * scale + dy, z * scale + dz])
+        new_coors = torch.tensor(new_coors, device='cuda:0')
+        return new_coors
