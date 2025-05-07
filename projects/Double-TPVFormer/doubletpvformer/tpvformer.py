@@ -34,8 +34,8 @@ class TPVFormer(Base3DSegmentor):
         encoder_high.num_points_in_pillar = [4, 32, 32]
         encoder_high.num_points_in_pillar_cross_view = [16, 16, 16]
         self.encoder_high = MODELS.build(encoder_high)
-        self.miu = 0.25
 
+        self.miu = 0.25
         self.decode_head = MODELS.build(decode_head)
 
     def extract_feat(self, img):
@@ -94,9 +94,10 @@ class TPVFormer(Base3DSegmentor):
         queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy)
 
         # 低分辨率的损失
-        losses = self.decode_head.loss(queries, queries_high_resolution, batch_data_samples, self.miu)
-
-        # losses = {**losses_l, **losses_h}
+        losses_l = self.decode_head.loss(queries, batch_data_samples)
+        # 高分辨率的损失
+        losses_h = self.decode_head.loss_h(queries_high_resolution, queries, batch_data_samples, self.miu)
+        losses = {**losses_l, **losses_h}
 
         return losses
 
@@ -109,16 +110,20 @@ class TPVFormer(Base3DSegmentor):
         # 低分辨率的查询
         tpv_queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy)
 
-        seg_logits_list = self.decode_head.predict(tpv_queries, tpv_queries_high_resolution, batch_data_samples, self.miu)
 
-        # seg_logits_list_high = self.decode_head.predict_h(tpv_queries_high_resolution, batch_data_samples)
+        seg_logits_list = self.decode_head.predict(tpv_queries, batch_data_samples)
+
+        seg_logits_list_high = self.decode_head.predict_h(tpv_queries_high_resolution, tpv_queries, batch_data_samples, self.miu)
         # seg_preds = [seg_logit.argmax(dim=1) for seg_logit in seg_logits]
 
         logits_results = []
         for i in range(len(seg_logits_list)):
             seg_logits_list[i] = seg_logits_list[i].transpose(0, 1)
-
-        return self.postprocess_result(seg_logits_list, batch_data_samples)
+            seg_logits_list_high[i] = seg_logits_list_high[i].transpose(0, 1)
+            len_high = seg_logits_list_high[i].shape[1]
+            logits_result = torch.cat((seg_logits_list_high[i], seg_logits_list[i][:, len_high:]), dim=1)
+            logits_results.append(logits_result)
+        return self.postprocess_result(logits_results, batch_data_samples)
 
     def aug_test(self, batch_inputs, batch_data_samples):
         pass
