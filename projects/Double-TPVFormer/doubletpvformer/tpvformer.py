@@ -8,10 +8,16 @@ from mmdet3d.structures.det3d_data_sample import SampleList
 import copy
 import torch
 import torch.nn.functional as F
+import math
 @MODELS.register_module()
 class TPVFormer(Base3DSegmentor):
 
     def __init__(self,
+                 pc_range=None,
+                 pc_range_h=None,
+                 tpv_h=None,
+                 tpv_w=None,
+                 tpv_z=None,
                  data_preprocessor: Optional[Union[dict, nn.Module]] = None,
                  backbone=None,
                  neck=None,
@@ -24,13 +30,16 @@ class TPVFormer(Base3DSegmentor):
         if neck is not None:
             self.neck = MODELS.build(neck)
         self.encoder = MODELS.build(encoder)
+        self.pc_range = pc_range
+        self.pc_range = pc_range_h
         encoder_high = copy.deepcopy(encoder)
-        encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+        encoder_high.pc_range = pc_range_h
+        # encoder_high.pc_range = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
         # encoder_high.pc_range = [-15, -15, -2.5, 15, 15, 1.5]
         # encoder_high.pc_range = [-18, -18, -2.5, 18, 18, 1.5]
-        encoder_high.tpv_h = 100
-        encoder_high.tpv_w = 100
-        encoder_high.tpv_z = 8
+        encoder_high.tpv_h = tpv_h
+        encoder_high.tpv_w = tpv_w
+        encoder_high.tpv_z = tpv_z
         encoder_high.num_points_in_pillar = [4, 32, 32]
         encoder_high.num_points_in_pillar_cross_view = [16, 16, 16]
         self.encoder_high = MODELS.build(encoder_high)
@@ -65,7 +74,73 @@ class TPVFormer(Base3DSegmentor):
 
         return outs_l, outs_h
 
+    def pre_sampling(self, pc_range, pc_range_h):
+        h_range = pc_range[3] - pc_range[0]
+        w_range = pc_range[4] - pc_range[1]
+        z_range = pc_range[5] - pc_range[2]
+        voxel_size_h = h_range / self.encoder.tpv_h
+        voxel_size_w = w_range / self.encoder.tpv_w
+        voxel_size_z = z_range / self.encoder.tpv_z
+        left_range = [pc_range[0], pc_range[1], pc_range[2]]
+
+        start_h = math.floor((pc_range_h[0] - left_range[0]) / voxel_size_h)
+        end_h = math.floor((pc_range_h[3] - left_range[0]) / voxel_size_h)
+        start_w = math.floor((pc_range_h[1] - left_range[1]) / voxel_size_w)
+        end_w = math.floor((pc_range_h[4] - left_range[1]) / voxel_size_w)
+        start_z = math.floor((pc_range_h[2] - left_range[2]) / voxel_size_z)
+        end_z = math.floor((pc_range_h[5] - left_range[2]) / voxel_size_z)
+        # h_1 = (pc_range_h[0] - left_range[0]) / voxel_size_h
+        # frac = math.ceil(h_1) - h_1
+        # if frac >= 0.001:
+        #     start_h = math.floor(h_1)
+        # else:
+        #     start_h = math.ceil(h_1)
+        #
+        #
+        # h_2 = (pc_range_h[3] - left_range[0]) / voxel_size_h
+        # frac = h_2 - math.floor(h_2)
+        # if frac >= 0.001:
+        #     end_h = math.ceil(h_2)
+        # else:
+        #     end_h = math.floor(h_2)
+        #
+        # w_1 = (pc_range_h[1] - left_range[1]) / voxel_size_w
+        # frac = math.ceil(w_1) - w_1
+        # if frac >= 0.001:
+        #     start_w = math.floor(w_1)
+        # else:
+        #     start_w = math.ceil(w_1)
+        #
+        # w_2 = (pc_range_h[4] - left_range[1]) / voxel_size_w
+        # frac = w_2 - math.floor(w_2)
+        # if frac >= 0.001:
+        #     end_w = math.ceil(w_2)
+        # else:
+        #     end_w = math.floor(w_2)
+        #
+        # z_1 = (pc_range_h[2] - left_range[2]) / voxel_size_z
+        # frac = math.ceil(z_1) - z_1
+        # if frac >= 0.001:
+        #     start_z = math.floor(z_1)
+        # else:
+        #     start_z = math.ceil(z_1)
+        #
+        # z_2 = (pc_range_h[5] - left_range[2]) / voxel_size_z
+        # frac = z_2 - math.floor(z_2)
+        # if frac >= 0.001:
+        #     end_z = math.ceil(z_2)
+        # else:
+        #     end_z = math.floor(z_2)
+
+        return start_h, end_h, start_w, end_w, start_z, end_z
+
+
+
     def Xcy(self, tpv_list):
+        start_h, end_h, start_w, end_w, start_z, end_z = self.pre_sampling(self.encoder.pc_range, self.encoder_high.pc_range)
+        len_h = end_h - start_h
+        len_w = end_w - start_w
+        len_z = end_z - start_z
         tpv_hw, tpv_zh, tpv_wz = tpv_list[0], tpv_list[1], tpv_list[2]
         h, w, z = self.encoder_high.tpv_h, self.encoder_high.tpv_w, self.encoder_high.tpv_z
         e_dim = tpv_hw.shape[2]
@@ -73,9 +148,12 @@ class TPVFormer(Base3DSegmentor):
         tpv_zh = tpv_zh.reshape(1, z, h, e_dim).permute(0, 3, 1, 2)
         tpv_wz = tpv_wz.reshape(1, w, z, e_dim).permute(0, 3, 1, 2)
 
-        tpv_hw = F.avg_pool2d(tpv_hw, kernel_size=2, stride=2)
-        tpv_zh = F.avg_pool2d(tpv_zh, kernel_size=2, stride=2)
-        tpv_wz = F.avg_pool2d(tpv_wz, kernel_size=2, stride=2)
+        tpv_hw = F.adaptive_avg_pool2d(tpv_hw, output_size=(len_h, len_w))
+        tpv_zh = F.adaptive_avg_pool2d(tpv_zh, output_size=(len_z, len_h))
+        tpv_wz = F.adaptive_avg_pool2d(tpv_wz, output_size=(len_w, len_z))
+        # tpv_hw = F.avg_pool2d(tpv_hw, kernel_size=2, stride=2)
+        # tpv_zh = F.avg_pool2d(tpv_zh, kernel_size=2, stride=2)
+        # tpv_wz = F.avg_pool2d(tpv_wz, kernel_size=2, stride=2)
 
         tpv_hw = tpv_hw.reshape(1, e_dim, -1).permute(0, 2, 1)
         tpv_zh = tpv_zh.reshape(1, e_dim, -1).permute(0, 2, 1)
@@ -87,16 +165,17 @@ class TPVFormer(Base3DSegmentor):
     def loss(self, batch_inputs: dict,
              batch_data_samples: SampleList) -> SampleList:
         img_feats = self.extract_feat(batch_inputs['imgs'])
+
         # 高分辨率的查询
         queries_high_resolution = self.encoder_high(img_feats, batch_data_samples, mode='high')
         tpv_xcy = self.Xcy(queries_high_resolution)
         # 低分辨率的查询
-        queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy)
+        queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy, pc_range_h=self.encoder_high.pc_range)
 
         # 低分辨率的损失
         losses_l = self.decode_head.loss(queries, batch_data_samples)
         # 高分辨率的损失
-        losses_h = self.decode_head.loss_h(queries_high_resolution, queries, batch_data_samples, self.miu)
+        losses_h = self.decode_head.loss_h(queries_high_resolution, queries, batch_data_samples, self.encoder_high.pc_range, self.miu)
         losses = {**losses_l, **losses_h}
 
         return losses
@@ -108,7 +187,7 @@ class TPVFormer(Base3DSegmentor):
         tpv_queries_high_resolution = self.encoder_high(img_feats, batch_data_samples, mode='high')
         tpv_xcy = self.Xcy(tpv_queries_high_resolution)
         # 低分辨率的查询
-        tpv_queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy)
+        tpv_queries = self.encoder(img_feats, batch_data_samples, mode='low', tpv_xcy=tpv_xcy, pc_range_h=self.encoder_high.pc_range)
 
 
         seg_logits_list = self.decode_head.predict(tpv_queries, batch_data_samples)

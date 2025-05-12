@@ -92,8 +92,8 @@ val_pipeline = [
     dict(  # Filter points not in the range
         type='PointsBoxFilterTest',
         point_box_type=[
-            [(-10, 10), (-10, 10), (None, None)],
-            [(-20, 20), (-20, 20), (None, None)]
+            [(-20, 20), (-20, 20), (None, None)],
+            [(-30, 30), (-30, 30), (None, None)]
         ],
         pc_range_h=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
     ),

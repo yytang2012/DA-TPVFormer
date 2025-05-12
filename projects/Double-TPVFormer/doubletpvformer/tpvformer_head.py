@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from mmengine.model import BaseModule
 
 from mmdet3d.registry import MODELS
-
+import math
 
 @MODELS.register_module()
 class TPVFormerDecoder(BaseModule):
@@ -495,7 +495,7 @@ class TPVFormerDecoder(BaseModule):
         return logits
 
 
-    def loss_h(self, tpv_list_h, tpv_list, batch_data_samples, miu=0.25):
+    def loss_h(self, tpv_list_h, tpv_list, batch_data_samples, pc_range_h, miu=0.25):
         tpv_hw, tpv_zh, tpv_wz = tpv_list
         bs, _, c = tpv_hw.shape
         tpv_hw = tpv_hw.permute(0, 2, 1).reshape(bs, c, self.tpv_h, self.tpv_w)
@@ -590,24 +590,43 @@ class TPVFormerDecoder(BaseModule):
                 -1, -1, self.scale_w * self.tpv_w, -1, -1)
             tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
                 -1, -1, -1, self.scale_h * self.tpv_h, -1)
-            h_start = self.tpv_h // 4  # = 25
-            w_start = self.tpv_w // 4  # = 25
-            z_start = self.tpv_z // 4  # = 2
-            half_h = self.tpv_h // 2
-            half_w = self.tpv_w // 2
-            half_z = self.tpv_z // 2
-            tpv_hw_vox = tpv_hw_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
-            tpv_zh_vox = tpv_zh_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
-            tpv_wz_vox = tpv_wz_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
+
+            pc_range_h = pc_range_h
+            pc_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+            start_h, end_h, start_w, end_w, start_z, end_z = self.pre_sampling(pc_range, pc_range_h)
+            len_h = end_h - start_h
+            len_w = end_w - start_w
+            len_z = end_z - start_z
+            tpv_hw_vox = tpv_hw_vox[:, :, start_h: end_h, start_w: end_w, start_z: end_z]
+            tpv_zh_vox = tpv_zh_vox[:, :, start_h: end_h, start_w: end_w, start_z: end_z]
+            tpv_wz_vox = tpv_wz_vox[:, :, start_h: end_h, start_w: end_w, start_z: end_z]
             tpv_hw_vox_upsampled = F.interpolate(
-                tpv_hw_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+                tpv_hw_vox, size=(self.tpv_h, self.tpv_w, self.tpv_z), mode='trilinear',
                 align_corners=False)
             tpv_zh_vox_upsampled = F.interpolate(
-                tpv_zh_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+                tpv_zh_vox, size=(self.tpv_h, self.tpv_w, self.tpv_z), mode='trilinear',
                 align_corners=False)
             tpv_wz_vox_upsampled = F.interpolate(
-                tpv_wz_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+                tpv_wz_vox, size=(self.tpv_h, self.tpv_w, self.tpv_z), mode='trilinear',
                 align_corners=False)
+            # h_start = self.tpv_h // 4  # = 25
+            # w_start = self.tpv_w // 4  # = 25
+            # z_start = self.tpv_z // 4  # = 2
+            # half_h = self.tpv_h // 2
+            # half_w = self.tpv_w // 2
+            # half_z = self.tpv_z // 2
+            # tpv_hw_vox = tpv_hw_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
+            # tpv_zh_vox = tpv_zh_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
+            # tpv_wz_vox = tpv_wz_vox[:, :, h_start: h_start + half_h, w_start: w_start + half_w, z_start: z_start + half_z]
+            # tpv_hw_vox_upsampled = F.interpolate(
+            #     tpv_hw_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+            #     align_corners=False)
+            # tpv_zh_vox_upsampled = F.interpolate(
+            #     tpv_zh_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+            #     align_corners=False)
+            # tpv_wz_vox_upsampled = F.interpolate(
+            #     tpv_wz_vox, size=(half_h * 2, half_w * 2, half_z * 2), mode='trilinear',
+            #     align_corners=False)
             fused_vox_low = tpv_hw_vox_upsampled + tpv_zh_vox_upsampled + tpv_wz_vox_upsampled
 
             tpv_hw_vox_h = tpv_hw_h.unsqueeze(-1).permute(0, 1, 3, 2, 4).expand(
@@ -667,3 +686,61 @@ class TPVFormerDecoder(BaseModule):
             lovasz_input, lovasz_label, ignore_index=self.ignore_index)
         return loss
 
+    def pre_sampling(self, pc_range, pc_range_h):
+        h_range = pc_range[3] - pc_range[0]
+        w_range = pc_range[4] - pc_range[1]
+        z_range = pc_range[5] - pc_range[2]
+        voxel_size_h = h_range / self.tpv_h
+        voxel_size_w = w_range / self.tpv_w
+        voxel_size_z = z_range / self.tpv_z
+        left_range = [pc_range[0], pc_range[1], pc_range[2]]
+
+        start_h = math.floor((pc_range_h[0] - left_range[0]) / voxel_size_h)
+        end_h = math.floor((pc_range_h[3] - left_range[0]) / voxel_size_h)
+        start_w = math.floor((pc_range_h[1] - left_range[1]) / voxel_size_w)
+        end_w = math.floor((pc_range_h[4] - left_range[1]) / voxel_size_w)
+        start_z = math.floor((pc_range_h[2] - left_range[2]) / voxel_size_z)
+        end_z = math.floor((pc_range_h[5] - left_range[2]) / voxel_size_z)
+        # h_1 = (pc_range_h[0] - left_range[0]) / voxel_size_h
+        # frac = math.ceil(h_1) - h_1
+        # if frac >= 0.001:
+        #     start_h = math.floor(h_1)
+        # else:
+        #     start_h = math.ceil(h_1)
+        #
+        # h_2 = (pc_range_h[3] - left_range[0]) / voxel_size_h
+        # frac = h_2 - math.floor(h_2)
+        # if frac >= 0.001:
+        #     end_h = math.ceil(h_2)
+        # else:
+        #     end_h = math.floor(h_2)
+        #
+        # w_1 = (pc_range_h[1] - left_range[1]) / voxel_size_w
+        # frac = math.ceil(w_1) - w_1
+        # if frac >= 0.001:
+        #     start_w = math.floor(w_1)
+        # else:
+        #     start_w = math.ceil(w_1)
+        #
+        # w_2 = (pc_range_h[4] - left_range[1]) / voxel_size_w
+        # frac = w_2 - math.floor(w_2)
+        # if frac >= 0.001:
+        #     end_w = math.ceil(w_2)
+        # else:
+        #     end_w = math.floor(w_2)
+        #
+        # z_1 = (pc_range_h[2] - left_range[2]) / voxel_size_z
+        # frac = math.ceil(z_1) - z_1
+        # if frac >= 0.001:
+        #     start_z = math.floor(z_1)
+        # else:
+        #     start_z = math.ceil(z_1)
+        #
+        # z_2 = (pc_range_h[5] - left_range[2]) / voxel_size_z
+        # frac = z_2 - math.floor(z_2)
+        # if frac >= 0.001:
+        #     end_z = math.ceil(z_2)
+        # else:
+        #     end_z = math.floor(z_2)
+
+        return start_h, end_h, start_w, end_w, start_z, end_z

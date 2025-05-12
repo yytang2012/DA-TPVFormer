@@ -7,7 +7,7 @@ from torch.nn.init import normal_
 
 from .cross_view_hybrid_attention import TPVCrossViewHybridAttention
 from .image_cross_attention import TPVMSDeformableAttention3D
-
+import math
 
 @MODELS.register_module()
 class TPVFormerEncoder(TransformerLayerSequence):
@@ -256,7 +256,67 @@ class TPVFormerEncoder(TransformerLayerSequence):
 
         return reference_points_cam, tpv_mask
 
-    def forward(self, mlvl_feats, batch_data_samples, mode='low', tpv_xcy=None):
+    def pre_sampling(self, pc_range, pc_range_h):
+        h_range = pc_range[3] - pc_range[0]
+        w_range = pc_range[4] - pc_range[1]
+        z_range = pc_range[5] - pc_range[2]
+        voxel_size_h = h_range / self.tpv_h
+        voxel_size_w = w_range / self.tpv_w
+        voxel_size_z = z_range / self.tpv_z
+        left_range = [pc_range[0], pc_range[1], pc_range[2]]
+
+        start_h = math.floor((pc_range_h[0] - left_range[0]) / voxel_size_h)
+        end_h = math.floor((pc_range_h[3] - left_range[0]) / voxel_size_h)
+        start_w = math.floor((pc_range_h[1] - left_range[1]) / voxel_size_w)
+        end_w = math.floor((pc_range_h[4] - left_range[1]) / voxel_size_w)
+        start_z = math.floor((pc_range_h[2] - left_range[2]) / voxel_size_z)
+        end_z = math.floor((pc_range_h[5] - left_range[2]) / voxel_size_z)
+
+        # h_1 = (pc_range_h[0] - left_range[0]) / voxel_size_h
+        # frac = math.ceil(h_1) - h_1
+        # if frac >= 0.001:
+        #     start_h = math.floor(h_1)
+        # else:
+        #     start_h = math.ceil(h_1)
+        #
+        # h_2 = (pc_range_h[3] - left_range[0]) / voxel_size_h
+        # frac = h_2 - math.floor(h_2)
+        # if frac >= 0.001:
+        #     end_h = math.ceil(h_2)
+        # else:
+        #     end_h = math.floor(h_2)
+        #
+        # w_1 = (pc_range_h[1] - left_range[1]) / voxel_size_w
+        # frac = math.ceil(w_1) - w_1
+        # if frac >= 0.001:
+        #     start_w = math.floor(w_1)
+        # else:
+        #     start_w = math.ceil(w_1)
+        #
+        # w_2 = (pc_range_h[4] - left_range[1]) / voxel_size_w
+        # frac = w_2 - math.floor(w_2)
+        # if frac >= 0.001:
+        #     end_w = math.ceil(w_2)
+        # else:
+        #     end_w = math.floor(w_2)
+        #
+        # z_1 = (pc_range_h[2] - left_range[2]) / voxel_size_z
+        # frac = math.ceil(z_1) - z_1
+        # if frac >= 0.001:
+        #     start_z = math.floor(z_1)
+        # else:
+        #     start_z = math.ceil(z_1)
+        #
+        # z_2 = (pc_range_h[5] - left_range[2]) / voxel_size_z
+        # frac = z_2 - math.floor(z_2)
+        # if frac >= 0.001:
+        #     end_z = math.ceil(z_2)
+        # else:
+        #     end_z = math.floor(z_2)
+
+        return start_h, end_h, start_w, end_w, start_z, end_z
+
+    def forward(self, mlvl_feats, batch_data_samples, mode='low', tpv_xcy=None, pc_range_h=None):
         """Forward function.
 
         Args:
@@ -278,18 +338,33 @@ class TPVFormerEncoder(TransformerLayerSequence):
 
         e_dim = tpv_queries_hw.shape[2]
         if mode == 'low':
+            pc_range_h = pc_range_h
+            pc_range = self.pc_range
+            start_h, end_h, start_w, end_w, start_z, end_z = self.pre_sampling(pc_range, pc_range_h)
+            len_h = end_h - start_h
+            len_w = end_w - start_w
+            len_z = end_z - start_z
             tpv_queries_hw = tpv_queries_hw.reshape(1, self.tpv_h, self.tpv_w, e_dim)
             tpv_queries_zh = tpv_queries_zh.reshape(1, self.tpv_z, self.tpv_h, e_dim)
             tpv_queries_wz = tpv_queries_wz.reshape(1, self.tpv_w, self.tpv_z, e_dim)
-            tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] *= 0.2
-            tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] *= 0.2
-            tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] *= 0.2
-            tpv_xcy_hw = tpv_xcy[0].reshape(1, self.tpv_h // 2, self.tpv_w // 2, e_dim)
-            tpv_xcy_zh = tpv_xcy[1].reshape(1, self.tpv_z // 2, self.tpv_h // 2, e_dim)
-            tpv_xcy_wz = tpv_xcy[2].reshape(1, self.tpv_w // 2, self.tpv_z // 2, e_dim)
-            tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] += (tpv_xcy_hw * 0.8)
-            tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] += (tpv_xcy_zh * 0.8)
-            tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] += (tpv_xcy_wz * 0.8)
+            tpv_queries_hw[:, start_h: end_h, start_w: end_w, :] *= 0.2
+            tpv_queries_zh[:, start_z: end_z, start_h: end_h, :] *= 0.2
+            tpv_queries_wz[:, start_w: end_w, start_z: end_z, :] *= 0.2
+            tpv_xcy_hw = tpv_xcy[0].reshape(1, len_h, len_w, e_dim)
+            tpv_xcy_zh = tpv_xcy[1].reshape(1, len_z, len_h, e_dim)
+            tpv_xcy_wz = tpv_xcy[2].reshape(1, len_w, len_z, e_dim)
+            tpv_queries_hw[:, start_h: end_h, start_w: end_w, :] += (tpv_xcy_hw * 0.8)
+            tpv_queries_zh[:, start_z: end_z, start_h: end_h, :] += (tpv_xcy_zh * 0.8)
+            tpv_queries_wz[:, start_w: end_w, start_z: end_z, :] += (tpv_xcy_wz * 0.8)
+            # tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] *= 0.2
+            # tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] *= 0.2
+            # tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] *= 0.2
+            # tpv_xcy_hw = tpv_xcy[0].reshape(1, self.tpv_h // 2, self.tpv_w // 2, e_dim)
+            # tpv_xcy_zh = tpv_xcy[1].reshape(1, self.tpv_z // 2, self.tpv_h // 2, e_dim)
+            # tpv_xcy_wz = tpv_xcy[2].reshape(1, self.tpv_w // 2, self.tpv_z // 2, e_dim)
+            # tpv_queries_hw[:, self.tpv_h // 4: self.tpv_h * 3 // 4, self.tpv_w // 4: self.tpv_w * 3 // 4, :] += (tpv_xcy_hw * 0.8)
+            # tpv_queries_zh[:, self.tpv_z // 4: self.tpv_z * 3 // 4, self.tpv_h // 4: self.tpv_h * 3 // 4, :] += (tpv_xcy_zh * 0.8)
+            # tpv_queries_wz[:, self.tpv_w // 4: self.tpv_w * 3 // 4, self.tpv_z // 4: self.tpv_z * 3 // 4, :] += (tpv_xcy_wz * 0.8)
             tpv_queries_hw = tpv_queries_hw.reshape(1, self.tpv_h * self.tpv_w, e_dim)
             tpv_queries_zh = tpv_queries_zh.reshape(1, self.tpv_z * self.tpv_h, e_dim)
             tpv_queries_wz = tpv_queries_wz.reshape(1, self.tpv_w * self.tpv_z, e_dim)

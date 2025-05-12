@@ -57,6 +57,7 @@ train_pipeline = [
     dict(  # Filter points not in the range
         type='PointsBoxFilter',
         point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
+        # point_box_type=((-20.48, 20.48), (-20.48, 20.48), (-2.5, 1.5))
         # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
         # point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
     ),
@@ -92,7 +93,7 @@ val_pipeline = [
     dict(  # Filter points not in the range
         type='PointsBoxFilter',
         point_box_type=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5)),
-        # point_box_type=((-15, 15), (-15, 15), (-2.5, 1.5))
+        # point_box_type=((-20.48, 20.48), (-20.48, 20.48), (-2.5, 1.5))
         # point_box_type=((-18, 18), (-18, 18), (-2.5, 1.5))
     ),
     # dict(  # Filter points not in the range
@@ -178,6 +179,7 @@ point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 # point_cloud_range_h = [-15, -15, -2.5, 15, 15, 1.5]
 # point_cloud_range_h = [-18, -18, -2.5, 18, 18, 1.5]
 point_cloud_range_h = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+# point_cloud_range_h = [-20.48, -20.48, -2.5, 20.48, 20.48, 1.5]
 # _dim_ = 128
 _dim_ = 128
 num_heads = 8
@@ -185,8 +187,11 @@ _ffn_dim_ = _dim_ * 2
 
 # tpv_h_ = 200
 # tpv_w_ = 200
-tpv_h_ = 100
-tpv_w_ = 100
+# tpv_h_ = 100
+# tpv_w_ = 100
+# tpv_z_ = 8
+tpv_h_ = 75
+tpv_w_ = 75
 tpv_z_ = 8
 scale_h = 1
 scale_w = 1
@@ -259,6 +264,11 @@ self_layer = dict(
 
 model = dict(
     type='TPVFormer',
+    pc_range=point_cloud_range,
+    pc_range_h=point_cloud_range_h,
+    tpv_h=tpv_h_,
+    tpv_w=tpv_w_,
+    tpv_z=tpv_z_,
     data_preprocessor=dict(
         type='TPVFormerDataPreprocessor',
         pad_size_divisor=32,
