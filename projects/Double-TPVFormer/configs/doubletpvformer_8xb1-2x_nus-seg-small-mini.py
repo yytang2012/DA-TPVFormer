@@ -187,12 +187,12 @@ _ffn_dim_ = _dim_ * 2
 
 # tpv_h_ = 200
 # tpv_w_ = 200
-# tpv_h_ = 100
-# tpv_w_ = 100
-# tpv_z_ = 8
-tpv_h_ = 75
-tpv_w_ = 75
+tpv_h_ = 100
+tpv_w_ = 100
 tpv_z_ = 8
+# tpv_h_ = 75
+# tpv_w_ = 75
+# tpv_z_ = 8
 scale_h = 1
 scale_w = 1
 scale_z = 1
@@ -277,6 +277,12 @@ model = dict(
         voxel=True,
         voxel_h=True,
         voxel_type='cylindrical',
+
+        tpv_w=tpv_w_,
+        tpv_h=tpv_h_,
+        tpv_z=tpv_z_,
+        fill_labels=0,
+
         voxel_layer=dict(
             grid_shape=grid_shape,
             point_cloud_range=point_cloud_range,

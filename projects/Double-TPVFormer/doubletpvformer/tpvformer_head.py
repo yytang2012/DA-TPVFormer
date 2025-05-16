@@ -293,6 +293,7 @@ class TPVFormerDecoder(BaseModule):
 
         return logits
 
+
     def loss(self, tpv_list, batch_data_samples):
         tpv_hw, tpv_zh, tpv_wz = tpv_list
         bs, _, c = tpv_hw.shape
@@ -348,10 +349,10 @@ class TPVFormerDecoder(BaseModule):
                 -1, -1, self.scale_w * self.tpv_w, -1, -1)
             tpv_wz_vox = tpv_wz.unsqueeze(-1).permute(0, 1, 2, 4, 3).expand(
                 -1, -1, -1, self.scale_h * self.tpv_h, -1)
-            fused_vox = tpv_hw_vox + tpv_zh_vox + tpv_wz_vox
-            voxel_coors = data_sample.voxel_coors.long()
-            fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
-                                  voxel_coors[:, 2]]
+            fused_vox = (tpv_hw_vox + tpv_zh_vox + tpv_wz_vox).flatten(2)
+            # voxel_coors = data_sample.voxel_coors.long()
+            # fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
+            #                       voxel_coors[:, 2]]
             fused_vox = fused_vox.squeeze(0)
             batch_vox.append(fused_vox)
         batch_pts = torch.cat(batch_pts, dim=1)
@@ -639,10 +640,10 @@ class TPVFormerDecoder(BaseModule):
             fused_vox_high = tpv_hw_vox_h + tpv_zh_vox_h + tpv_wz_vox_h
 
             fused_vox = miu * fused_vox_low + (1 - miu) * fused_vox_high
-
-            voxel_coors = data_sample.voxel_coors_h.long()
-            fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
-                        voxel_coors[:, 2]]
+            fused_vox = fused_vox.flatten(2)
+            # voxel_coors = data_sample.voxel_coors_h.long()
+            # fused_vox = fused_vox[:, :, voxel_coors[:, 0], voxel_coors[:, 1],
+            #             voxel_coors[:, 2]]
             fused_vox = fused_vox.squeeze(0)
             batch_vox.append(fused_vox)
         batch_pts = torch.cat(batch_pts, dim=1)

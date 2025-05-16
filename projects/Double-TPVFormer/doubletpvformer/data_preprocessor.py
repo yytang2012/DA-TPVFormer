@@ -22,10 +22,18 @@ class TPVFormerDataPreprocessor(Det3DDataPreprocessor):
     def __init__(self,
                  voxel_h: bool = False,
                  voxel_layer_h: OptConfigType = None,
+                 tpv_w: int = 200,
+                 tpv_h: int = 200,
+                 tpv_z: int = 16,
+                 fill_labels: int = 0,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.voxel_h = voxel_h
+        self.tpv_w = tpv_w
+        self.tpv_h = tpv_h
+        self.tpv_z = tpv_z
+        self.fill_labels = fill_labels
 
         if voxel_h:
             self.voxel_layer_h = VoxelizationByGridShape(**voxel_layer_h)
@@ -174,14 +182,49 @@ class TPVFormerDataPreprocessor(Det3DDataPreprocessor):
             voxel_semantic_mask, voxel_coors, point2voxel_map = \
                 dynamic_scatter_3d(pts_semantic_mask, res_coors, 'mean', True)
             voxel_semantic_mask = torch.argmax(voxel_semantic_mask, dim=-1)
+
+            grid_shape = (self.tpv_w, self.tpv_h, self.tpv_z)
+            fill_labels = self.fill_labels
+
+            # 初始化稠密体素语义标签 grid（全设为 empty 类）
+            dense_voxel_sem_mask = torch.full(grid_shape, fill_value=fill_labels, dtype=torch.long,
+                                              device=voxel_coors.device)
+
+            # voxel_coors 的 shape 是 (M, 3)，表示 M 个非空体素的坐标 (x, y, z)
+            # voxel_semantic_mask 的 shape 是 (M,)，表示对应的语义类别
+            x, y, z = voxel_coors[:, 0], voxel_coors[:, 1], voxel_coors[:, 2]
+            dense_voxel_sem_mask[x, y, z] = voxel_semantic_mask
+            # num_nonzero = (dense_voxel_sem_mask != 0).sum()
+
+            dense_voxel_sem_mask = dense_voxel_sem_mask.reshape(-1)
+
+            # 生成每个维度的坐标轴
+            x_range = torch.arange(grid_shape[0], device=dense_voxel_sem_mask.device)
+            y_range = torch.arange(grid_shape[1], device=dense_voxel_sem_mask.device)
+            z_range = torch.arange(grid_shape[2], device=dense_voxel_sem_mask.device)
+            # 网格坐标生成，注意使用 indexing='ij' 保持 XYZ 对应
+            xx, yy, zz = torch.meshgrid(x_range, y_range, z_range, indexing='ij')
+            # 合并为 (N, 3) 的体素坐标列表
+            dense_voxel_coords = torch.stack([xx, yy, zz], dim=-1).reshape(-1, 3)  # shape: (100*100*8, 3)
+
+            data_sample.gt_pts_seg.voxel_semantic_mask = dense_voxel_sem_mask
+            data_sample.point2voxel_map = point2voxel_map
+            data_sample.voxel_coors = dense_voxel_coords
+        else:
+            pts_semantic_mask = data_sample.gt_pts_seg.pts_semantic_mask
+            pts_semantic_mask = F.one_hot(pts_semantic_mask.long()).float()
+            voxel_semantic_mask, voxel_coors, point2voxel_map = \
+                dynamic_scatter_3d(pts_semantic_mask, res_coors, 'mean', True)
+            voxel_semantic_mask = torch.argmax(voxel_semantic_mask, dim=-1)
             data_sample.gt_pts_seg.voxel_semantic_mask = voxel_semantic_mask
             data_sample.point2voxel_map = point2voxel_map
             data_sample.voxel_coors = voxel_coors
-        else:
-            pseudo_tensor = res_coors.new_ones([res_coors.shape[0], 1]).float()
-            _, _, point2voxel_map = dynamic_scatter_3d(pseudo_tensor,
-                                                       res_coors, 'mean', True)
-            data_sample.point2voxel_map = point2voxel_map
+
+        # else:
+        #     pseudo_tensor = res_coors.new_ones([res_coors.shape[0], 1]).float()
+        #     _, _, point2voxel_map = dynamic_scatter_3d(pseudo_tensor,
+        #                                                res_coors, 'mean', True)
+        #     data_sample.point2voxel_map = point2voxel_map
 
     def get_voxel_seg_h(self, res_coors: Tensor, data_sample: SampleList):
         """Get voxel-wise segmentation label and point2voxel map.
@@ -198,14 +241,49 @@ class TPVFormerDataPreprocessor(Det3DDataPreprocessor):
             voxel_semantic_mask_h, voxel_coors_h, point2voxel_map_h = \
                 dynamic_scatter_3d(pts_semantic_mask_h, res_coors, 'mean', True)
             voxel_semantic_mask_h = torch.argmax(voxel_semantic_mask_h, dim=-1)
+
+            grid_shape = (self.tpv_w, self.tpv_h, self.tpv_z)
+            fill_labels = self.fill_labels
+
+            # 初始化稠密体素语义标签 grid（全设为 empty 类）
+            dense_voxel_sem_mask_h = torch.full(grid_shape, fill_value=fill_labels, dtype=torch.long,
+                                              device=voxel_coors_h.device)
+
+            # voxel_coors 的 shape 是 (M, 3)，表示 M 个非空体素的坐标 (x, y, z)
+            # voxel_semantic_mask 的 shape 是 (M,)，表示对应的语义类别
+            x, y, z = voxel_coors_h[:, 0], voxel_coors_h[:, 1], voxel_coors_h[:, 2]
+            dense_voxel_sem_mask_h[x, y, z] = voxel_semantic_mask_h
+            # num_nonzero = (dense_voxel_sem_mask != 0).sum()
+
+            dense_voxel_sem_mask_h = dense_voxel_sem_mask_h.reshape(-1)
+
+            # 生成每个维度的坐标轴
+            x_range = torch.arange(grid_shape[0], device=dense_voxel_sem_mask_h.device)
+            y_range = torch.arange(grid_shape[1], device=dense_voxel_sem_mask_h.device)
+            z_range = torch.arange(grid_shape[2], device=dense_voxel_sem_mask_h.device)
+            # 网格坐标生成，注意使用 indexing='ij' 保持 XYZ 对应
+            xx, yy, zz = torch.meshgrid(x_range, y_range, z_range, indexing='ij')
+            # 合并为 (N, 3) 的体素坐标列表
+            dense_voxel_coords_h = torch.stack([xx, yy, zz], dim=-1).reshape(-1, 3)  # shape: (100*100*8, 3)
+
+            data_sample.gt_pts_seg.voxel_semantic_mask_h = dense_voxel_sem_mask_h
+            data_sample.point2voxel_map_h = point2voxel_map_h
+            data_sample.voxel_coors_h = dense_voxel_coords_h
+        else:
+            pts_semantic_mask_h = data_sample.gt_pts_seg.pts_semantic_mask_h
+            pts_semantic_mask_h = F.one_hot(pts_semantic_mask_h.long()).float()
+            voxel_semantic_mask_h, voxel_coors_h, point2voxel_map_h = \
+                dynamic_scatter_3d(pts_semantic_mask_h, res_coors, 'mean', True)
+            voxel_semantic_mask_h = torch.argmax(voxel_semantic_mask_h, dim=-1)
             data_sample.gt_pts_seg.voxel_semantic_mask_h = voxel_semantic_mask_h
             data_sample.point2voxel_map_h = point2voxel_map_h
             data_sample.voxel_coors_h = voxel_coors_h
-        else:
-            pseudo_tensor = res_coors.new_ones([res_coors.shape[0], 1]).float()
-            _, _, point2voxel_map_h = dynamic_scatter_3d(pseudo_tensor,
-                                                       res_coors, 'mean', True)
-            data_sample.point2voxel_map_h = point2voxel_map_h
+
+        # else:
+        #     pseudo_tensor = res_coors.new_ones([res_coors.shape[0], 1]).float()
+        #     _, _, point2voxel_map_h = dynamic_scatter_3d(pseudo_tensor,
+        #                                                res_coors, 'mean', True)
+        #     data_sample.point2voxel_map_h = point2voxel_map_h
 
 @MODELS.register_module()
 class GridMask(nn.Module):
