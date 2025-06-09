@@ -95,7 +95,7 @@ val_pipeline = [
             [(-20, 20), (-20, 20), (None, None)],
             [(-30, 30), (-30, 30), (None, None)]
         ],
-        pc_range_h=((-25.6, 25.6), (-25.6, 25.6), (-2.5, 1.5))
+        pc_range_h=((-25.6, 25.6), (-25.6, 25.6), (-5.0, 3.0))
     ),
 
 
@@ -174,7 +174,7 @@ default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=1))
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 # point_cloud_range_h = [-15, -15, -2.5, 15, 15, 1.5]
 # point_cloud_range_h = [-18, -18, -2.5, 18, 18, 1.5]
-point_cloud_range_h = [-25.6, -25.6, -2.5, 25.6, 25.6, 1.5]
+point_cloud_range_h = [-25.6, -25.6, -5.0, 25.6, 25.6, 3.0]
 _dim_ = 128
 # _dim_ = 256
 num_heads = 8
@@ -256,6 +256,11 @@ self_layer = dict(
 
 model = dict(
     type='TPVFormer',
+    pc_range=point_cloud_range,
+    pc_range_h=point_cloud_range_h,
+    tpv_h=tpv_h_,
+    tpv_w=tpv_w_,
+    tpv_z=tpv_z_,
     data_preprocessor=dict(
         type='TPVFormerDataPreprocessor',
         pad_size_divisor=32,
@@ -359,3 +364,4 @@ model = dict(
         lovasz_input='points',
         ce_input='voxel',
         ignore_index=0))
+randomness = dict(seed=325552870, deterministic=False)
