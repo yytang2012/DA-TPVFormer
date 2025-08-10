@@ -177,13 +177,22 @@ class TPVFormer(Base3DSegmentor):
         # 高分辨率的损失
         losses_h = self.decode_head.loss_h(queries_high_resolution, queries, batch_data_samples, self.encoder_high.pc_range, self.miu)
 
-        for k in losses_l:
-            losses_l[k] = 0.2 * losses_l[k]
+        # for k in losses_l:
+        #     losses_l[k] = 0.2 * losses_l[k]
+        #
+        # for k in losses_h:
+        #     losses_h[k] = 0.8 * losses_h[k]
 
-        for k in losses_h:
-            losses_h[k] = 0.8 * losses_h[k]
+        # losses = {**losses_l, **losses_h}
 
-        losses = {**losses_l, **losses_h}
+        loss_l_total = sum(losses_l.values())
+        loss_h_total = sum(losses_h.values())
+
+        total_loss = (1.0 * loss_l_total + 2.0 * loss_h_total) / 3
+
+
+        losses = {'loss':total_loss, **losses_l, **losses_h}
+
 
         return losses
 
