@@ -20,7 +20,7 @@ Three-dimensional environmental perception remains a critical bottleneck in auto
 
 
 # Methods
-![method](figs/arch.pdf)
+![method](figs/arch.jpg)
 
 
 <!-- # Getting Started
@@ -44,8 +44,8 @@ Three-dimensional environmental perception remains a critical bottleneck in auto
 | tpv-s | [model]| [config] |
 | datpv | [model]| [config] |
 ### Visualization
-![result1](figs/v1.pdf)
-![result2](figs/v2.pdf)
+![result1](figs/v1.jpg)
+![result2](figs/v2.jpg)
 
 ## Semantic Scene Completion
 | Method | SC IoU | SSC mIoU  | model | config |
