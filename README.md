@@ -29,20 +29,17 @@ Three-dimensional environmental perception remains a critical bottleneck in auto
 - [Run and Eval](docs/getting_started.md) -->
 
 # Model Zoo
+Baidu Netdisk Extraction code: **2222**
 ## LiDAR Segmentation
-| Method | mIoU  | model | log | config |
-| :-- | :--: |  :-- |  :-- |  :-- |
-| tpv-l | 53.9 | [model]| [log] | [config] |
-| tpv-s | 47.3 | [model]| [log] | [config] |
-| datpv | 55.2 | [model]| [log] | [config] |
+| Method | mIoU  | model| config |
+| :-- | :--: |  :-- |  :-- |
+| datpv | 55.2 | [model](https://pan.baidu.com/s/10Fpbfhqdj_0ra_QMTeHYAA)/[log](https://pan.baidu.com/s/1GfJXNk7HJ5yXLBBGGlcJXg) | [config](configs/datpv_lidar.txt) |
 
 
 ## 3D Semantic Occupancy Prediction
 | Method | model | config |
 | :-- | :--: |  :-- |
-| tpv-l | [model]| [config] |
-| tpv-s | [model]| [config] |
-| datpv | [model]| [config] |
+| datpv | [model]| [config](configs/datpv_sop.txt) |
 ### Visualization
 ![result1](figs/v1.jpg)
 ![result2](figs/v2.jpg)
@@ -50,12 +47,16 @@ Three-dimensional environmental perception remains a critical bottleneck in auto
 ## Semantic Scene Completion
 | Method | SC IoU | SSC mIoU  | model | config |
 | :-- | :--: |  :-- |  :-- |  :-- |
-| tpv-l | 43.38 | 10.69 | [model]| [config] |
-| tpv-s | 41.24 | 10.69 | [model]| [config] |
-| datpv | 43.33 | 10.69 | [model]| [config] |
+| datpv | 43.33 | 10.69 | [model]| [config](configs/datpv_ssc.txt) |
 
+<!-- | tpv-l | 53.9 | [model]| [log] | [config] |
+| tpv-s | 47.3 | [model]| [log] | [config] | -->
 
+<!-- | tpv-l | [model]| [config] |
+| tpv-s | [model]| [config] | -->
 
+<!-- | tpv-l | 43.38 | 10.69 | [model]| [config] |
+| tpv-s | 41.24 | 10.69 | [model]| [config] | -->
 
 # Acknowledgement
 
