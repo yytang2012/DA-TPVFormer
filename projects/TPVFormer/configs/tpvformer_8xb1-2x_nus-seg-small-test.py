@@ -90,11 +90,11 @@ val_pipeline = [
     #     point_box_type=((-10, 10), (-10, 10), (None, None)),
     #     keep_inside=False
     # ),
-    dict(  # Filter points not in the range
-        type='PointsBoxFilter',
-        point_box_type=((-10, 10), (-10, 10), (None, None)),
-        keep_inside=True
-    ),
+    # dict(  # Filter points not in the range
+    #     type='PointsBoxFilter',
+    #     point_box_type=((-10, 10), (-10, 10), (None, None)),
+    #     keep_inside=True
+    # ),
     dict(
         type='Pack3DDetInputs',
         keys=['img', 'points', 'pts_semantic_mask'],
@@ -173,8 +173,8 @@ _dim_ = 128
 num_heads = 8
 _ffn_dim_ = _dim_ * 2
 
-tpv_h_ = 100
-tpv_w_ = 100
+tpv_h_ = 200
+tpv_w_ = 200
 tpv_z_ = 8
 scale_h = 1
 scale_w = 1
