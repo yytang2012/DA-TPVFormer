@@ -3,9 +3,9 @@
 # Distance-Aware Tri-Perspective View for Efficient 3D Perception in Autonomous Driving
 </div>
 
-
+<!--
 ### [Paper](https://arxiv.org/pdf/2302.07817) | [Project Page](https://wzzheng.net/TPVFormer/) | [Leaderboard](https://www.nuscenes.org/lidar-segmentation?externalData=all&mapData=all&modalities=Camera)
-
+-->
 
 
 > Yutao Tang*, Jigang Zhao\* , Zhengrui Qin, Lingying Zhao, Guangxi Chen$\ddagger$,Jie Ren$\ddagger$
@@ -29,18 +29,28 @@ Three-dimensional environmental perception remains a critical bottleneck in auto
 - [Run and Eval](docs/getting_started.md) -->
 
 # Model Zoo
-## Nuscenes datasets
-| Method | mIoU  | Download |
+## LiDAR Segmentation
+| Method | mIoU  | model | log | config |
+| :-- | :--: |  :-- |  :-- |  :-- |
+| tpv-l | 53.9 | [model]| [log] | [config] |
+| tpv-s | 47.3 | [model]| [log] | [config] |
+| datpv | 55.2 | [model]| [log] | [config] |
+
+
+## 3D Semantic Occupancy Prediction
+[result]
+| Method | model | config |
 | :-- | :--: |  :-- |
-| tpv (200×200×16) | — | [model](https://github.com/zhiqi-li/storage/releases/download/v1.0/bevformer_tiny_fp16_epoch_24.pth) / [log](https://github.com/zhiqi-li/storage/releases/download/v1.0/bevformer_tiny_fp16_epoch_24.log) |
-| tpv (100×100×8) | — | [model](https://github.com/zhiqi-li/storage/releases/download/v1.0/bevformer_tiny_epoch_24.pth) / [log](https://github.com/zhiqi-li/storage/releases/download/v1.0/bevformer_tiny_epoch_24.log) |
-| datpv (100×100×8) | — | [model](https://pan.baidu.com/s/1J-dD0btopLW4oY1p-Gn-RA 提取码: cbqd) / [log](https://pan.baidu.com/s/191TdQAtjcBZep6zrm16XZQ 提取码: wdeu) |
+| tpv-l | [model]| [config] |
+| tpv-s | [model]| [config] |
+| datpv | [model]| [config] |
 
-
-
-| R50 · BEVFormerV2-t2 · 48ep | — | [config](projects/configs/bevformerv2/bevformerv2-r50-t2-48ep.py) | [model/log](https://drive.google.com/drive/folders/1bSyuFWxfJSIidGV7bC8jx2NR7idRN9-s?usp=sharing) |
-| R50 · BEVFormerV2-t8 · 24ep | — | [config](projects/configs/bevformerv2/bevformerv2-r50-t8-24ep.py) | [model/log](https://drive.google.com/drive/folders/1Ml_usx5BNx43CFH1Di2OTazuzSyAlBto?usp=sharing) |
-
+## Semantic Scene Completion
+| Method | SC IoU | SSC mIoU  | model | config |
+| :-- | :--: |  :-- |  :-- |  :-- |
+| tpv-l | 43.38 | 10.69 | [model]| [config] |
+| tpv-s | 41.24 | 10.69 | [model]| [config] |
+| datpv | 43.33 | 10.69 | [model]| [config] |
 
 
 
