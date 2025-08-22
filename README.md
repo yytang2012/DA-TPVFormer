@@ -39,7 +39,7 @@ Baidu Netdisk Extraction code: **2222**
 ## 3D Semantic Occupancy Prediction
 | Method | model | config |
 | :-- | :--: |  :-- |
-| datpv | [model]| [config](configs/datpv_sop.txt) |
+| datpv | [model](https://pan.baidu.com/s/15QJZLayUBVh8LDTXW0z3kg)| [config](configs/datpv_sop.txt) |
 ### Visualization
 ![result1](figs/v1.jpg)
 ![result2](figs/v2.jpg)
@@ -47,7 +47,7 @@ Baidu Netdisk Extraction code: **2222**
 ## Semantic Scene Completion
 | Method | SC IoU | SSC mIoU  | model | config |
 | :-- | :--: |  :-- |  :-- |  :-- |
-| datpv | 43.33 | 10.69 | [model]| [config](configs/datpv_ssc.txt) |
+| datpv | 43.33 | 10.69 | [model](https://pan.baidu.com/s/15aEQSg-eJCwvvi5YDC6Oow)| [config](configs/datpv_ssc.txt) |
 
 <!-- | tpv-l | 53.9 | [model]| [log] | [config] |
 | tpv-s | 47.3 | [model]| [log] | [config] | -->
